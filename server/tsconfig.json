@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node22/tsconfig.json",
+  "extends": "@tsconfig/node20/tsconfig.json",
 
   "compilerOptions": {
     "baseUrl": ".",
@@ -7,8 +7,10 @@
     "outDir": "dist",
     "sourceMap": true,
 
+    "target": "es2022",
+    "lib": ["es2022", "es2023.array", "es2023.collection", "dom"],
+
     "module": "ES2022",
-    "target": "ES2022",
     "moduleResolution": "Node",
 
     "strict": true,

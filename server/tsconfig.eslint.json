@@ -1,7 +1,7 @@
 {
-  "extends": "@tsconfig/node22/tsconfig.json",
+  "extends": "@tsconfig/node20/tsconfig.json",
   "exclude": ["**/*.js"],
-  "include": ["**/*.ts", "eslint.config.cjs", "vitest.config.js"],
+  "include": ["**/*.ts", ".eslintrc.cjs", "vitest.config.js"],
 
   "compilerOptions": {
     "strict": true,

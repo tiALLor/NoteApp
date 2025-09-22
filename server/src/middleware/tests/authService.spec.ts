@@ -6,7 +6,7 @@ import { type UserPublic } from '@server/entities/user'
 import type { Database } from '@server/database'
 import logger from '@server/utils/logger'
 import * as tokenPayloadModule from '@server/trpc/tokenPayload'
-import { AuthService, type AuthTokens } from '../authService'
+import { AuthService } from '../authService'
 
 // Mock dependencies
 vi.mock('bcrypt')
@@ -48,7 +48,7 @@ vi.mock('@server/repositories/userRepository', () => ({
 
 // Mock token payload functions
 vi.mock('@server/trpc/tokenPayload')
-
+// TODO: clean up code
 // vi.mock('@server/trpc/tokenPayload', () => ({
 //   prepareTokenPayload: vi.fn().mockReturnValue({
 //     user: { id: 1, userName: 'test-user' },
@@ -75,10 +75,11 @@ const testUserPublic: UserPublic = {
   userName: fakeTestUserWithHash.userName,
 }
 
-const testTokens: AuthTokens = {
-  accessToken: 'access-token',
-  refreshToken: 'refresh-token',
-}
+// TODO: clean up code
+// const testTokens: AuthTokens = {
+//   accessToken: 'access-token',
+//   refreshToken: 'refresh-token',
+// }
 
 beforeEach(() => {
   // Reset all mocks
@@ -581,15 +582,11 @@ describe('verifyAccessToken', () => {
         ;(bcrypt.hash as Mock).mockResolvedValue('hashed-result')
 
         // Act
-        const result = await AuthService.getPasswordHash(
-          'password',
-          'pepper',
-          10
-        )
+        const result = await authService.getPasswordHash('password')
 
         // Assert
         expect(result).toBe('hashed-result')
-        expect(bcrypt.hash).toHaveBeenCalledWith('passwordpepper', 10)
+        expect(bcrypt.hash).toHaveBeenCalledWith('passwordtest-pepper',10)
       })
     })
 

@@ -52,11 +52,7 @@ export class AuthService {
     userName: string,
     password: string
   ): Promise<UserPublic> {
-    const passwordHash = await AuthService.getPasswordHash(
-      password,
-      this.pepper,
-      this.passwordCost
-    )
+    const passwordHash = await this.getPasswordHash(password)
 
     // check if user exists
     const existing = await this.repos.getByEmail(email)
@@ -207,11 +203,7 @@ export class AuthService {
     }
 
     // Hash new password
-    const newPasswordHash = await AuthService.getPasswordHash(
-      newPassword,
-      this.pepper,
-      this.passwordCost
-    )
+    const newPasswordHash = await this.getPasswordHash(newPassword)
 
     const changedUser = await this.repos.updatePassword({
       id: userId,
@@ -293,13 +285,13 @@ export class AuthService {
   // Static functions
   // ===========================================
 
-  static async getPasswordHash(
-    password: string,
-    pepper: string,
-    cost: number
+  async getPasswordHash(
+    password: string
+    // pepper: string,
+    // cost: number
   ): Promise<string> {
-    const combined = password + pepper
-    const hash = await bcrypt.hash(combined, cost)
+    const combined = password + this.pepper
+    const hash = await bcrypt.hash(combined, this.passwordCost)
     return hash
   }
 

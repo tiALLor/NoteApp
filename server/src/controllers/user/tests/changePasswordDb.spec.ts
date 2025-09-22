@@ -6,7 +6,6 @@ import { fakeUserWithHash } from '@server/entities/tests/fakes'
 import { authContext } from '@tests/utils/context'
 import { userPublicSchema } from '@server/entities/user'
 import userRouter from '@server/controllers/user'
-import { getPasswordHash } from '@server/utils/hash'
 import { AuthService } from '@server/middleware/authService'
 import type { Database } from '@server/database'
 
@@ -23,7 +22,7 @@ const createCaller = createCallerFactory(userRouter)
 
 const PASSWORD_CORRECT = 'Password.098'
 
-const HASH_PASSWORD_CORRECT = await getPasswordHash(PASSWORD_CORRECT)
+const HASH_PASSWORD_CORRECT = await authService.getPasswordHash(PASSWORD_CORRECT)
 
 const [userOne] = await insertAll(db, 'user', [
   fakeUserWithHash({ passwordHash: HASH_PASSWORD_CORRECT }),

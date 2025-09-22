@@ -4,7 +4,6 @@ import { createTestDatabase } from '@tests/utils/database'
 import { insertAll } from '@tests/utils/records'
 import { fakeUserWithHash } from '@server/entities/tests/fakes'
 import userRouter from '@server/controllers/user'
-import { getPasswordHash } from '@server/utils/hash'
 import { AuthService } from '@server/middleware/authService'
 import type { Database } from '@server/database'
 
@@ -23,8 +22,8 @@ const createCaller = createCallerFactory(userRouter)
 const { login } = createCaller({ db, authService })
 
 const PASSWORD_CORRECT = 'Password.098'
-
-const HASH_PASSWORD_CORRECT = await getPasswordHash(PASSWORD_CORRECT)
+const HASH_PASSWORD_CORRECT =
+  await authService.getPasswordHash(PASSWORD_CORRECT)
 
 const [userForLogging] = await insertAll(
   db,

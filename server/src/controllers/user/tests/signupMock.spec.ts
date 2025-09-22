@@ -5,17 +5,20 @@ import { selectAll } from '@tests/utils/records'
 import { fakeUser } from '@server/entities/tests/fakes'
 import { random } from '@tests/utils/random'
 import userRouter from '@server/controllers/user'
+import { AuthService } from '@server/middleware/authService'
 
 const db = await wrapInRollbacks(createTestDatabase())
+const authService = new AuthService(db)
 const createCaller = createCallerFactory(userRouter)
 
 const PASSWORD_CORRECT = 'Password.098'
 
-const { signup } = createCaller({ db })
+const { signup } = createCaller({ db, authService })
 
 it('should create a user with role user', async () => {
   const userData = fakeUser({
     password: PASSWORD_CORRECT,
+    lastLogin: new Date(),
   })
 
   const result = await signup(userData)
@@ -26,15 +29,15 @@ it('should create a user with role user', async () => {
 
   expect(userInDatabase).toMatchObject({
     id: expect.any(Number),
-    ...userData,
-    password: expect.not.stringContaining(userData.password),
+    userName: userData.userName,
+    email: userData.email,
   })
 
-  expect(userInDatabase.password).toHaveLength(60)
+  expect(userInDatabase.passwordHash).toHaveLength(60)
 
   expect(result).toEqual({
     id: userInDatabase.id,
-    name: userInDatabase.name,
+    userName: userInDatabase.userName,
   })
 })
 

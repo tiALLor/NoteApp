@@ -31,9 +31,13 @@ async function migrateOneDown(db: Kysely<any>) {
 
   results?.forEach((it) => {
     if (it.status === 'Success') {
-      console.info(`Migration "${it.migrationName}" was rolled back successfully.`)
+      console.info(
+        `Migration "${it.migrationName}" was rolled back successfully.`
+      )
     } else if (it.status === 'Error') {
-      console.error(`Failed to execute migration roll back "${it.migrationName}".`)
+      console.error(
+        `Failed to execute migration roll back "${it.migrationName}".`
+      )
     }
   })
 

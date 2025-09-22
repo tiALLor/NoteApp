@@ -1,4 +1,5 @@
 import { authContext, requestContext } from '@tests/utils/context'
+import { AuthService } from '@server/middleware/authService'
 import { createCallerFactory, router } from '..'
 import { authenticatedProcedure } from '.'
 
@@ -10,19 +11,16 @@ const createCaller = createCallerFactory(routes)
 
 const VALID_TOKEN = 'valid-token'
 
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    verify: (token: string) => {
-      if (token !== VALID_TOKEN) throw new Error('Invalid token')
-
-      return { user: { id: 2, name: 'some', roleName: 'user' } }
-    },
-  },
-}))
-
 // we do not need a database for this test
 const db = {} as any
 const authenticated = createCaller(authContext({ db }))
+
+const fakeAuthService = {
+  verifyAccessToken: (token: string) => {
+    if (token !== VALID_TOKEN) throw new Error('Invalid token')
+    return { user: { id: 2, name: 'some', roleName: 'user' } }
+  },
+} as unknown as AuthService
 
 it('should pass if user is already authenticated', async () => {
   const response = await authenticated.testCall()
@@ -33,6 +31,7 @@ it('should pass if user is already authenticated', async () => {
 it('should pass if user provides a valid token', async () => {
   const usingValidToken = createCaller({
     db,
+    authService: fakeAuthService,
     req: {
       header: () => `Bearer ${VALID_TOKEN}`,
     } as any,
@@ -67,6 +66,7 @@ it('should throw an error if user provides invalid token', async () => {
   const invalidToken = createCaller(
     requestContext({
       db,
+      authService: fakeAuthService,
       req: {
         header: () => 'Bearer invalid-token',
       } as any,

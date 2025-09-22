@@ -1,7 +1,8 @@
-import type { User, Meal, Menu, Order } from '@server/database/types'
+import { expect } from 'vitest'
+import type { User } from '@server/database/types'
 import type { Insertable } from 'kysely'
-import { random } from '@tests/utils/random'
-import type { AuthUserWithRoleName } from '../user'
+import { random, randomValidPassword } from '@tests/utils/random'
+import type { UserInsertable, UserPublic } from '../user'
 
 const randomId = () =>
   random.integer({
@@ -9,50 +10,38 @@ const randomId = () =>
     max: 1000000,
   })
 
-export const fakeUser = <T extends Partial<Insertable<User>>>(
+export const fakeUser = <T extends Partial<UserInsertable>>(
+  overrides: T = {} as T
+): UserInsertable => ({
+  userName: random.name(),
+  email: random.email(),
+  password: randomValidPassword(),
+  ...overrides,
+})
+
+export const fakeAuthUser = <T extends Partial<UserPublic>>(
+  overrides: T = {} as T
+): UserPublic => ({
+  id: randomId(),
+  userName: random.name(),
+  ...overrides,
+})
+
+export const fakeUserWithHash = <T extends Partial<Insertable<User>>>(
   overrides: T = {} as T
 ): Insertable<User> => ({
-  name: random.name(),
+  userName: random.name(),
   email: random.email(),
-  password: 'random.password',
-  roleId: 3,
+  passwordHash: random.string(),
   ...overrides,
 })
 
-export const fakeAuthUserWithRoleName = <
-  T extends Partial<AuthUserWithRoleName>,
->(
+export const fakeUserWithHashMatcher = <T extends Partial<Insertable<User>>>(
   overrides: T = {} as T
-): AuthUserWithRoleName => ({
-  id: randomId(),
-  name: random.name(),
-  roleName: 'user',
-  ...overrides,
-})
-
-export const fakeMeal = <T extends Partial<Insertable<Meal>>>(
-  overrides: T = {} as T
-): Insertable<Meal> => ({
-  name: random.sentence({ words: 10 }),
-  priceEur: random.floating({ min: 0.1, max: 100, fixed: 2 }).toString(),
-  type: 'soup',
-  ...overrides,
-})
-
-export const fakeMenu = <T extends Partial<Insertable<Menu>>>(
-  overrides: T = {} as T
-): Insertable<Menu> => ({
-  date: random.date(),
-  mealId: 2,
-  ...overrides,
-})
-
-export const fakeOrder = <T extends Partial<Insertable<Order>>>(
-  overrides: T = {} as T
-): Insertable<Order> => ({
-  date: random.date(),
-  userId: 1,
-  soupMealId: 1,
-  mainMealId: 2,
-  ...overrides,
+): Insertable<User> => ({
+  id: expect.any(Number),
+  createdAt: expect.anything(),
+  updatedAt: expect.anything(),
+  lastLogin: expect.anything(),
+  ...fakeUserWithHash(overrides),
 })

@@ -1,4 +1,4 @@
-import type { Meal, Menu, Order, User } from '@server/shared/types'
+import type { User } from '@server/shared/types'
 import type { Insertable } from 'kysely'
 import { Chance } from 'chance'
 
@@ -15,35 +15,10 @@ export const random = process.env.CI ? Chance(1) : Chance()
  */
 export const fakeUser = <T extends Insertable<User>>(overrides: Partial<T> = {} as T) => ({
   email: random.email(),
-  password: 'password.123',
-  name: random.last(),
+  password: 'Password.123',
+  userName: random.last(),
   roleName: 'user' as const,
   ...overrides,
 })
 
-export const fakeMeal = <T extends Partial<Insertable<Meal>>>(
-  overrides: T = {} as T
-): Insertable<Meal> => ({
-  name: random.sentence({ words: 10 }),
-  priceEur: random.floating({ min: 0.1, max: 100, fixed: 2 }).toString(),
-  type: 'soup',
-  ...overrides,
-})
 
-export const fakeMenu = <T extends Partial<Insertable<Menu>>>(
-  overrides: T = {} as T
-): Insertable<Menu> => ({
-  date: random.date(),
-  mealId: 2,
-  ...overrides,
-})
-
-export const fakeOrder = <T extends Partial<Insertable<Order>>>(
-  overrides: T = {} as T
-): Insertable<Order> => ({
-  date: random.date(),
-  userId: 1,
-  soupMealId: 1,
-  mainMealId: 2,
-  ...overrides,
-})

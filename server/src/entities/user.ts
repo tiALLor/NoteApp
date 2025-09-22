@@ -1,67 +1,96 @@
 import { z } from 'zod'
 import type { Insertable, Selectable } from 'kysely'
 import type { User } from '@server/database/types'
-import { ROLES } from './role'
-import { idSchema } from './shared'
+import { idSchema, dateSchema, dateTimeSchema, passwordSchema } from './shared'
 
+// ===========================================
 // main schema
+// ===========================================
 export const userSchema = z.object({
   id: idSchema,
-  name: z.string().trim().min(1).max(50),
-  email: z.string().toLowerCase().trim().email(),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters long')
-    .max(64, 'Password must be at most 64 characters long'),
-  roleId: z.number().positive().max(ROLES.length),
+  userName: z.string().trim().min(1).max(100),
+  // email: z.string().toLowerCase().trim().email(),
+  email: z.string().toLowerCase().trim().max(255).email(),
+  password: passwordSchema,
+  createdAt: dateSchema.optional(),
+  updatedAt: dateSchema.optional(),
+  lastLogin: dateTimeSchema.optional().nullable(),
 })
 
 export const userKeyAll = Object.keys(userSchema.shape) as (keyof User)[]
 
-// insertable
-export const userInsertable = userSchema.pick({
-  name: true,
-  email: true,
-  password: true,
-  roleId: true,
+export const userWithHashSchema = z.object({
+  id: idSchema,
+  userName: z.string().trim().min(1).max(100),
+  // email: z.string().toLowerCase().trim().email(),
+  email: z.string().toLowerCase().trim().max(255).email(),
+  passwordHash: passwordSchema,
+  createdAt: dateSchema.optional(),
+  updatedAt: dateSchema.optional(),
+  lastLogin: dateTimeSchema.optional().nullable(),
 })
 
-export type UserInsertable = Insertable<User>
+export const userWithHashKeyAll = Object.keys(
+  userWithHashSchema.shape
+) as (keyof User)[]
 
+// ===========================================
+// insertable
+// ===========================================
+export const userInsertable = userSchema
+  .pick({ userName: true, email: true, password: true })
+  .extend({ id: userSchema.shape.id.optional() })
+
+export type UserInsertable = z.infer<typeof userInsertable>
+
+export const userWithHashInsertable = userWithHashSchema.pick({
+  userName: true,
+  email: true,
+  passwordHash: true,
+})
+
+export type UserWithHashInsertable = Insertable<User>
+
+// ===========================================
 // updateable
-
+// ===========================================
 export const changePasswordSchema = z
   .object({
-    oldPassword: z.string().min(8).max(64),
-    newPassword: z.string().min(8).max(64),
-    confirmNewPassword: z.string().min(8).max(64),
+    oldPassword: passwordSchema,
+    newPassword: passwordSchema,
+    confirmNewPassword: passwordSchema,
   })
-  .refine((data) => data.newPassword === data.confirmNewPassword, {
-    path: ['confirmNewPassword'],
-    message: 'Passwords do not match',
+  .superRefine((data, ctx) => {
+    if (data.newPassword !== data.confirmNewPassword) {
+      ctx.addIssue({
+        path: ['confirmNewPassword'],
+        code: z.ZodIssueCode.custom,
+        message: 'Passwords do not match',
+      })
+    }
+
+    if (data.newPassword === data.oldPassword) {
+      ctx.addIssue({
+        path: ['newPassword'],
+        code: z.ZodIssueCode.custom,
+        message: 'New password cannot match old password',
+      })
+    }
   })
 
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
+// ===========================================
+// selectable
+// ===========================================
+export type UserWithHashSelectable = Selectable<User>
 
+// ===========================================
 // public
+// ===========================================
+export const userPublicSchema = userSchema.pick({
+  id: true,
+  userName: true,
+})
 
-export const userKeyPublic = ['id', 'name'] as const
+export const userKeyPublic = ['id', 'userName'] as const
 
 export type UserPublic = Pick<Selectable<User>, (typeof userKeyPublic)[number]>
-
-// user with Role name
-export const userSchemaWithRoleName = userSchema.extend({
-  roleName: z.enum(ROLES),
-})
-
-export type UserWithRoleName = z.infer<typeof userSchemaWithRoleName>
-
-// authUser
-
-export const authUserSchemaWithRoleName = userSchemaWithRoleName.pick({
-  id: true,
-  name: true,
-  roleName: true,
-})
-
-export type AuthUserWithRoleName = z.infer<typeof authUserSchemaWithRoleName>

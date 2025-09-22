@@ -1,17 +1,15 @@
 import type { Database, User } from '@server/database'
 import type { Selectable } from 'kysely'
-import { prefixTable } from '../utils/strings'
 import {
-  userKeyAll,
+  userWithHashKeyAll,
   userKeyPublic,
-  type UserInsertable,
+  type UserWithHashInsertable,
   type UserPublic,
-  type UserWithRoleName,
 } from '../entities/user'
 
 export function userRepository(db: Database) {
   return {
-    async create(user: UserInsertable): Promise<UserPublic> {
+    async create(user: UserWithHashInsertable): Promise<UserPublic> {
       return db
         .insertInto('user')
         .values(user)
@@ -23,56 +21,38 @@ export function userRepository(db: Database) {
       return db
         .selectFrom('user')
         .where('email', '=', email)
-        .select(userKeyAll)
+        .select(userWithHashKeyAll)
         .executeTakeFirst()
-    },
-
-    async getByEmailWithRoleName(
-      email: string
-    ): Promise<UserWithRoleName | undefined> {
-      const user = await db
-        .selectFrom('user')
-        .innerJoin('role', 'user.roleId', 'role.id')
-        .where('user.email', '=', email)
-        .select((eb) => [
-          ...prefixTable('user', userKeyAll),
-          eb.ref('role.name').as('roleName'),
-        ])
-        .executeTakeFirst()
-      return user as UserWithRoleName | undefined
     },
 
     async getById(id: number): Promise<Selectable<User> | undefined> {
       return db
         .selectFrom('user')
         .where('id', '=', id)
-        .select(userKeyAll)
+        .select(userWithHashKeyAll)
         .executeTakeFirst()
     },
 
-    async getByIdWithRoleName(
-      id: number
-    ): Promise<UserWithRoleName | undefined> {
-      const user = await db
+    async getByUserName(
+      userName: string
+    ): Promise<Selectable<User> | undefined> {
+      return db
         .selectFrom('user')
-        .innerJoin('role', 'user.roleId', 'role.id')
-        .where('user.id', '=', id)
-        .select([...prefixTable('user', userKeyAll), 'role.name as roleName'])
+        .where('userName', '=', userName)
+        .select(userWithHashKeyAll)
         .executeTakeFirst()
-
-      return user as UserWithRoleName | undefined
     },
 
     async updatePassword({
       id,
-      password,
+      passwordHash,
     }: {
       id: number
-      password: string
+      passwordHash: string
     }): Promise<UserPublic> {
       const result = await db
         .updateTable('user')
-        .set({ password })
+        .set({ passwordHash })
         .where('id', '=', id)
         .returning(userKeyPublic)
         .executeTakeFirst()

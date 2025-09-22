@@ -1,13 +1,14 @@
 import 'dotenv/config'
-import { config } from 'dotenv'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { config } from 'dotenv'
 import { z } from 'zod'
-import { testUser } from './shared/forTests'
 import type { Secret } from 'jsonwebtoken'
 
 // Load .env from the server folder explicitly
+// eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle
 const __filename = fileURLToPath(import.meta.url)
+// eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle
 const __dirname = dirname(__filename)
 config({ path: resolve(__dirname, '../../server/.env') })
 
@@ -35,51 +36,34 @@ const schema = z
     port: z.coerce.number().default(3000),
 
     auth: z.object({
+      botApiKey: z.string(),
       tokenKey: z
         .string()
         .default(() => {
           if (isDevTest) {
-            return 'supersecretkey'
+            return 'superSecretKey'
           }
 
           throw new Error('You must provide a TOKEN_KEY in a production env!')
         })
         .transform((val) => val as Secret), // Cast to Secret for JWT typing,
-      expiresIn: jwtExpirySchema.default('1h'),
+      refreshTokenKey: z
+        .string()
+        .default(() => {
+          if (isDevTest) {
+            return 'superRefreshSecretKey'
+          }
+
+          throw new Error('You must provide a TOKEN_KEY in a production env!')
+        })
+        .transform((val) => val as Secret), // Cast to Secret for JWT typing,
+      tokenExpiresIn: jwtExpirySchema.default('1h'),
+      refreshTokenExpiresIn: jwtExpirySchema.default('7dh'),
       passwordCost: z.coerce.number().default(isDevTest ? 6 : 12),
       passwordPepper: z.string().default('abc123'),
     }),
 
-    database: z.object({
-      connectionString: z.string().url(),
-    }),
-
-    admin: z.object({
-      email: z
-        .string()
-        .email()
-        .toLowerCase()
-        .default(() => {
-          if (isDevTest) {
-            return testUser.email
-          }
-
-          throw new Error('You must provide a ADMIN_EMAIL in a production env!')
-        }),
-      password: z
-        .string()
-        .min(8)
-        .max(40)
-        .default(() => {
-          if (isDevTest) {
-            return testUser.password
-          }
-
-          throw new Error(
-            'You must provide a INITIAL_ADMIN_PASSWORD in a production env!'
-          )
-        }),
-    }),
+    database: z.object({ connectionString: z.string().url() }),
   })
   .readonly()
 
@@ -89,20 +73,16 @@ const configData = schema.parse({
   isCi: env.CI,
 
   auth: {
+    botApiKey: env.BOT_API_KEY,
     tokenKey: env.TOKEN_KEY,
-    expiresIn: env.TOKEN_EXPIRES_IN,
+    refreshTokenKey: env.REFRESH_TOKEN_KEY,
+    tokenExpiresIn: env.TOKEN_EXPIRES_IN,
+    refreshTokenExpiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
     passwordCost: env.PASSWORD_COST,
     passwordPepper: env.PASSWORD_PEPPER,
   },
 
-  database: {
-    connectionString: env.DATABASE_URL,
-  },
-
-  admin: {
-    email: env.ADMIN_EMAIL,
-    password: env.INITIAL_ADMIN_PASSWORD,
-  },
+  database: { connectionString: env.DATABASE_URL },
 })
 
 export default configData

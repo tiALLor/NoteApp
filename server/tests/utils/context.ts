@@ -1,8 +1,5 @@
-import { fakeAuthUserWithRoleName } from '@server/entities/tests/fakes'
-import {
-  authUserSchemaWithRoleName,
-  type AuthUserWithRoleName,
-} from '@server/entities/user'
+import { fakeAuthUser } from '@server/entities/tests/fakes'
+import { userPublicSchema, type UserPublic } from '@server/entities/user'
 import type { Context, ContextMinimal } from '@server/trpc'
 
 export const requestContext = (
@@ -20,17 +17,17 @@ export const requestContext = (
 
 export const authContext = (
   context: Partial<Context> & ContextMinimal,
-  user: AuthUserWithRoleName = fakeAuthUserWithRoleName()
+  user: UserPublic = fakeAuthUser()
 ): Context => ({
-  authUser: authUserSchemaWithRoleName.parse(user),
+  authUser: userPublicSchema.parse(user),
   ...context,
 })
 
 export const authRepoContext = (
   repos: any, // Context['repos'], but easier to work with any in tests
-  user: AuthUserWithRoleName = fakeAuthUserWithRoleName()
+  user: UserPublic = fakeAuthUser()
 ): Context => ({
-  authUser: authUserSchemaWithRoleName.parse(user),
+  authUser: userPublicSchema.parse(user),
   ...requestContext({
     db: {} as any,
     repos,

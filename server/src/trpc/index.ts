@@ -1,13 +1,14 @@
 import * as path from 'node:path'
 import { initTRPC } from '@trpc/server'
 import type { Request, Response } from 'express'
-import type { AuthUserWithRoleName } from '@server/entities/user'
+import type { UserPublic } from '@server/entities/user'
 import type { Database } from '@server/database'
 import SuperJSON from 'superjson'
 import { ZodError } from 'zod'
 import { fromZodError } from 'zod-validation-error'
 import type { Repositories } from '@server/repositories'
 import logger from '@server/utils/logger'
+import type { AuthService } from '@server/middleware/authService'
 
 export type Context = {
   db: Database
@@ -19,10 +20,11 @@ export type Context = {
   res?: Response
 
   // We can also add our own custom context properties.
-  authUser?: AuthUserWithRoleName
+  authUser?: UserPublic
 
   // For providing repos in a slightly easier to test way
   repos?: Partial<Repositories>
+  authService?: AuthService
 }
 
 export type ContextMinimal = Pick<Context, 'db'>

@@ -2,8 +2,8 @@
 
 1. `npm install`
 2. Create a PostgreSQL database with pg-vector with docker-compose.yml with
-`docker compose up -d`, `docker compose down`,
-or use an existing one
+   `docker compose up -d`, `docker compose down`,
+   or use an existing one
 3. Setup `.env` file based on `.env.example` files.
 
 ## Running the project in development
@@ -41,3 +41,11 @@ npm run start
 # or migrate + start
 npm run prod
 ```
+
+## Password rules
+
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
+- At least one special character (!@#$%^&\*()\_+{}[]:;<>,.?~\-)

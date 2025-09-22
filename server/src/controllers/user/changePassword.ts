@@ -1,63 +1,53 @@
-import { changePasswordSchema } from '@server/entities/user'
-import { userRepository } from '@server/repositories/userRepository'
+import { changePasswordSchema, type UserPublic } from '@server/entities/user'
 import { authenticatedProcedure } from '@server/trpc/authenticatedProcedure'
-import provideRepos from '@server/trpc/provideRepos'
-import bcrypt, { hash } from 'bcrypt'
-import config from '@server/config'
 import { TRPCError } from '@trpc/server'
 import { assertError } from '@server/utils/errors'
 
-const addPepper = (password: string) =>
-  `${password}${config.auth.passwordPepper}`
-
 export default authenticatedProcedure
-  .use(provideRepos({ userRepository }))
   .input(changePasswordSchema)
   .mutation(
     async ({
       input: { oldPassword, newPassword },
-      ctx: { authUser, repos },
+      ctx: { authUser, authService },
     }) => {
-      const user = await repos.userRepository.getByIdWithRoleName(authUser.id)
-
-      if (!user) {
+      if (oldPassword === newPassword) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'could not find user with user.id',
+          message: 'Old and New Password do not match',
         })
       }
 
-      const isPassMatch = await bcrypt.compare(
-        addPepper(oldPassword),
-        user.password
-      )
+      let changedUser: UserPublic
 
-      if (!isPassMatch) {
+      if (!authService) {
         throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Incorrect old password. Please try again.',
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Auth service not available',
         })
       }
 
-      const newPasswordHash = await hash(
-        addPepper(newPassword),
-        config.auth.passwordCost
-      )
-
-      const changedUser = await repos.userRepository
-        .updatePassword({
-          id: authUser.id,
-          password: newPasswordHash,
-        })
-        .catch((error: unknown) => {
-          assertError(error)
-
+      try {
+        changedUser = await authService.changePassword(
+          authUser.id,
+          oldPassword,
+          newPassword
+        )
+      } catch (error) {
+        assertError(error)
+        if (error instanceof TRPCError) {
           throw error
+        }
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Password reset failed',
+          cause: error,
         })
+      }
 
       return {
         id: changedUser.id,
-        name: changedUser.name,
+        userName: changedUser.userName,
       }
     }
   )

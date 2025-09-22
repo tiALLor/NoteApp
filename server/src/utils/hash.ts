@@ -1,3 +1,4 @@
+// TODO: delete file
 import { hash } from 'bcrypt'
 import config from '@server/config'
 

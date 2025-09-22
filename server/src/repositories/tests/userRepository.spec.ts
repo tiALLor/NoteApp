@@ -1,50 +1,86 @@
 import { createTestDatabase } from '@tests/utils/database'
 import { selectAll, insertAll } from '@tests/utils/records'
 import { wrapInRollbacks } from '@tests/utils/transactions'
-import { fakeUser } from '@server/entities/tests/fakes'
+import {
+  fakeUserWithHash,
+  fakeUserWithHashMatcher,
+} from '@server/entities/tests/fakes'
 import { userRepository } from '../userRepository'
 
 const db = await wrapInRollbacks(createTestDatabase())
 const repository = userRepository(db)
 
 beforeEach(async () => {
-
-  await db.deleteFrom('order').execute()
-  await db.deleteFrom('menu').execute()
-  await db.deleteFrom('meal').execute()
   await db.deleteFrom('user').execute()
 })
 
 describe('create user', () => {
   it('should create user', async () => {
-    const record = fakeUser({ id: 10 })
+    const record = fakeUserWithHash({
+      id: 10,
+      lastLogin: new Date(),
+    })
 
     const user = await repository.create(record)
 
     expect(user).toEqual({
       id: expect.any(Number),
-      name: record.name,
+      userName: record.userName,
     })
 
     // check directly in database
     const [userInDatabase] = await selectAll(db, 'user', (eb) =>
       eb('id', '=', user.id)
     )
-    expect(userInDatabase).toEqual({ ...record, id: user.id })
+
+    expect(userInDatabase).toEqual(fakeUserWithHashMatcher({ ...record, id: user.id}))
+    // expect(userInDatabase).toMatchObject({
+    //   ...record,
+    //   id: user.id,
+    //   createdAt: expect.anything(),
+    //   updatedAt: expect.anything(),
+    //   lastLogin: null,
+    // })
+  })
+})
+
+describe('getById', () => {
+  it('should return a user according to provided Id', async () => {
+    const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
+    const user = await repository.getById(userTwo.id)
+
+    expect(user).toEqual({
+      ...userTwo,
+    })
   })
 
-  it('should throw a error in case of not existing roleId', async () => {
-    const record = fakeUser({
-      id: 11,
-      roleId: 999999,
+  it('should return undefined if user do not exist', async () => {
+    const user = await repository.getById(9999999)
+
+    expect(user).toBeUndefined()
+  })
+})
+
+describe('getByUserName', () => {
+  it('should return a user according to provided userName', async () => {
+    const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
+    const user = await repository.getByUserName(userTwo.userName)
+
+    expect(user).toEqual({
+      ...userTwo,
     })
-    await expect(() => repository.create(record)).rejects.toThrow(/role_id/i)
+  })
+
+  it('should return undefined if user do not exist', async () => {
+    const user = await repository.getByUserName('someFakeName')
+
+    expect(user).toBeUndefined()
   })
 })
 
 describe('getByEmail', () => {
   it('should return a user according to provided email', async () => {
-    const [userOne] = await insertAll(db, 'user', [fakeUser()])
+    const [userOne] = await insertAll(db, 'user', [fakeUserWithHash()])
     const user = await repository.getByEmail(userOne.email)
 
     expect(user).toEqual(userOne)
@@ -57,67 +93,32 @@ describe('getByEmail', () => {
   })
 })
 
-describe('getByEmailWithRoleName', () => {
-  it('should return a user according to provided email', async () => {
-    const [userOne] = await insertAll(db, 'user', [fakeUser()])
-    const user = await repository.getByEmailWithRoleName(userOne.email)
-
-    expect(user).toEqual({
-      ...userOne,
-      roleName: 'user',
-    })
-  })
-
-  it('should return undefined if user do not exist', async () => {
-    const user = await repository.getByEmailWithRoleName('some@fake.email.com')
-
-    expect(user).toBeUndefined()
-  })
-})
-
-describe('getByIdWithRoleName', () => {
-  it('should return a user according to provided Id', async () => {
-    const [userTwo] = await insertAll(db, 'user', [fakeUser()])
-    const user = await repository.getByIdWithRoleName(userTwo.id)
-
-    expect(user).toEqual({
-      ...userTwo,
-      roleName: 'user',
-    })
-  })
-
-  it('should return undefined if user do not exist', async () => {
-    const user = await repository.getById(9999999)
-
-    expect(user).toBeUndefined()
-  })
-})
-
 describe('change password', () => {
   it('should change the password ', async () => {
-    const record = fakeUser({
-      password: 'some_password_123',
+    const record = fakeUserWithHash({
+      passwordHash: 'some_password_123',
     })
 
     const user = await repository.create(record)
 
     const result = await repository.updatePassword({
       id: user.id,
-      password: 'newPassword987',
+      passwordHash: 'newPassword987',
     })
 
-    expect(result).toEqual({ id: user.id, name: record.name })
+    expect(result).toEqual({ id: user.id, userName: record.userName })
 
     const [userInDatabase] = await selectAll(db, 'user', (eb) =>
       eb('id', '=', user.id)
     )
-    expect(userInDatabase.password).toEqual('newPassword987')
+
+    expect(userInDatabase.passwordHash).toEqual('newPassword987')
   })
 
   it('should throw a error if user do not exist ', async () => {
     const record = {
       id: 999999,
-      password: 'somePassword',
+      passwordHash: 'somePassword',
     }
 
     await expect(repository.updatePassword(record)).rejects.toThrow(
@@ -131,7 +132,7 @@ describe('deleteUserByEmail', () => {
     const [userToBeDeleted] = await insertAll(
       db,
       'user',
-      fakeUser({
+      fakeUserWithHash({
         email: 'toBe@deleted.com',
       })
     )
@@ -140,7 +141,7 @@ describe('deleteUserByEmail', () => {
 
     expect(result).toEqual({
       id: userToBeDeleted.id,
-      name: userToBeDeleted.name,
+      userName: userToBeDeleted.userName,
     })
 
     // check directly in database
@@ -158,13 +159,13 @@ describe('deleteUserByEmail', () => {
 
 describe('deleteUserById', () => {
   it('should delete a user base on id', async () => {
-    const [userToBeDeleted] = await insertAll(db, 'user', fakeUser())
+    const [userToBeDeleted] = await insertAll(db, 'user', fakeUserWithHash())
 
     const result = await repository.deleteUserById(userToBeDeleted.id)
 
     expect(result).toEqual({
       id: userToBeDeleted.id,
-      name: userToBeDeleted.name,
+      userName: userToBeDeleted.userName,
     })
 
     // check directly in database

@@ -9,10 +9,13 @@ import logger from './utils/logger'
 import type { Database } from './database'
 import { appRouter } from './controllers'
 import type { Context } from './trpc'
-// import { renderTrpcPanel } from 'trpc-panel'
-// import config from './config'
+import { AuthService } from './middleware/authService'
+
 
 export default function createApp(db: Database) {
+  // Create authService
+  const authService = new AuthService(db)
+
   const app = express()
 
   app.use(cors())
@@ -38,6 +41,7 @@ export default function createApp(db: Database) {
         db,
         req,
         res,
+        authService,
       }),
       onError({ error, path, type, input, ctx }) {
         logger.error('tRPC error', {

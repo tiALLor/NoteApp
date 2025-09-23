@@ -1,16 +1,13 @@
 import config from '@server/config'
+import { authenticatedProcedure } from '@server/trpc/authenticatedProcedure'
 import { TRPCError } from '@trpc/server'
-import { publicProcedure } from '..'
+import { assertError } from '@server/utils/errors'
+import type { UserPublic } from '@server/shared/types'
+import { z } from 'zod'
 
-export const authenticatedProcedure = publicProcedure.use(
-  async ({ ctx, next }) => {
-    if (ctx.authUser) {
-      return next({
-        ctx: {
-          authUser: ctx.authUser,
-        },
-      })
-    }
+export default authenticatedProcedure
+  .input(z.object({}))
+  .mutation(async ({ ctx }) => {
     // we depend on having an Express request object
     if (!ctx.req) {
       const message =
@@ -23,10 +20,8 @@ export const authenticatedProcedure = publicProcedure.use(
         message,
       })
     }
-
-    // if we do not have an authenticated user, we will try to authenticate
+    // we will try to authenticate
     const token = ctx.req.header('Authorization')?.replace('Bearer ', '')
-
 
     // if there is no token, we will throw an error
     if (!token) {
@@ -41,22 +36,34 @@ export const authenticatedProcedure = publicProcedure.use(
         message: 'Auth service not available',
       })
     }
-    const data = await ctx.authService.verifyAccessToken(token)
 
-    const authUser = data.user
+    try {
+      const data = await ctx.authService.verifyAccessToken(token)
 
-    if (!authUser) {
+      const authUser: UserPublic = data.user
+
+      if (!authUser) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Invalid token.',
+        })
+      }
+
+      return authUser
+    } catch (error) {
+      // Clear invalid refresh token cookie
+      if (ctx.res) {
+        ctx.res.clearCookie('refreshToken')
+      }
+      assertError(error)
+      if (error instanceof TRPCError) {
+        throw error
+      }
+
       throw new TRPCError({
         code: 'UNAUTHORIZED',
-        message: 'Invalid token.',
+        message: 'authMe failed',
+        cause: error,
       })
     }
-
-    return next({
-      ctx: {
-        ...ctx,
-        authUser,
-      },
-    })
-  }
-)
+  })

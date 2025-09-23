@@ -18,7 +18,7 @@ const activeTab = ref('first')
       <div class="lg:w-1/2">
         <h2 class="text-4xl font-bold text-gray-800 dark:text-gray-100">Delete account</h2>
         <p class="mt-4 text-2xl text-red-500 dark:text-red-400 lg:max-w-md">
-          Attention: You can delete only a account without orders or a order history.
+          Attention: Data will be forever lost
         </p>
       </div>
       <DeleteAccount />

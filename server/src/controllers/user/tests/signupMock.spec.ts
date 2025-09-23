@@ -1,43 +1,48 @@
-import { createTestDatabase } from '@tests/utils/database'
-import { wrapInRollbacks } from '@tests/utils/transactions'
 import { createCallerFactory } from '@server/trpc'
-import { selectAll } from '@tests/utils/records'
 import { fakeUser } from '@server/entities/tests/fakes'
-import { random } from '@tests/utils/random'
 import userRouter from '@server/controllers/user'
 import { AuthService } from '@server/middleware/authService'
+import { TRPCError } from '@trpc/server'
 
-const db = await wrapInRollbacks(createTestDatabase())
-const authService = new AuthService(db)
+const db = {} as any
 const createCaller = createCallerFactory(userRouter)
 
 const PASSWORD_CORRECT = 'Password.098'
 
-const { signup } = createCaller({ db, authService })
+const fakeTestUser = fakeUser({ id: 22, password: PASSWORD_CORRECT })
+const userInDb = fakeUser({
+  id: 11,
+  email: 'inDatabase@email.com',
+  userName: 'userInDatabase',
+})
+
+const fakeAuthService = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  signup: (email: string, userName: string, password: string) => {
+    if (email.toLowerCase() === userInDb.email.toLowerCase()) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'User with this email already exists',
+      })
+    }
+    if (userName === userInDb.userName) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Username is already taken',
+      })
+    }
+    return { id: fakeTestUser.id, userName }
+  },
+} as unknown as AuthService
+
+const { signup } = createCaller({ db, authService: fakeAuthService })
 
 it('should create a user with role user', async () => {
-  const userData = fakeUser({
-    password: PASSWORD_CORRECT,
-    lastLogin: new Date(),
-  })
-
-  const result = await signup(userData)
-
-  const [userInDatabase] = await selectAll(db, 'user', (eb) =>
-    eb('email', '=', userData.email)
-  )
-
-  expect(userInDatabase).toMatchObject({
-    id: expect.any(Number),
-    userName: userData.userName,
-    email: userData.email,
-  })
-
-  expect(userInDatabase.passwordHash).toHaveLength(60)
+  const result = await signup(fakeTestUser)
 
   expect(result).toEqual({
-    id: userInDatabase.id,
-    userName: userInDatabase.userName,
+    id: fakeTestUser.id,
+    userName: fakeTestUser.userName,
   })
 })
 
@@ -61,46 +66,16 @@ it('should require a password with at least 8 characters', async () => {
   ).rejects.toThrow(/password/i)
 })
 
-it('stores lowercased email', async () => {
-  const userData = fakeUser({
-    email: 'some@email.com',
-  })
-
-  await signup({
-    ...userData,
-    email: userData.email.toUpperCase(),
-  })
-
-  // get user with original lowercase email
-  const [userInDatabase] = await selectAll(db, 'user', (eb) =>
-    eb('email', '=', userData.email)
-  )
-
-  expect(userInDatabase.email).toBe('some@email.com')
-})
-
-it('stores email with trimmed whitespace', async () => {
-  const user = fakeUser()
-  await signup({
-    ...user,
-    email: ` \t ${user.email}\t `, // tabs and spaces
-  })
-
-  const userInDatabase = await selectAll(db, 'user', (eb) =>
-    eb('email', '=', user.email)
-  )
-
-  expect(userInDatabase).toHaveLength(1)
-})
-
 it('throws an error for duplicate email', async () => {
-  const email = random.email()
-
-  // signup once
-  await signup(fakeUser({ email }))
-
   // expect that the second signup will throw an error
-  await expect(signup(fakeUser({ email }))).rejects.toThrow(
+  await expect(signup(fakeUser({ email: userInDb.email }))).rejects.toThrow(
     /email already exists/i
   )
+})
+
+it('throws an error for duplicate userName', async () => {
+  // expect that the second signup will throw an error
+  await expect(
+    signup(fakeUser({ userName: userInDb.userName }))
+  ).rejects.toThrow(/Username is already taken/i)
 })

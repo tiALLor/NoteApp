@@ -54,7 +54,7 @@ export class AuthService {
   ): Promise<UserPublic> {
     const passwordHash = await this.getPasswordHash(password)
 
-    // check if user exists
+    // check if user exists with email
     const existing = await this.repos.getByEmail(email)
     if (existing) {
       throw new TRPCError({
@@ -261,7 +261,7 @@ export class AuthService {
 
       const data = parseTokenPayload(decoded)
 
-      // Get user to ensure they still exist and are active
+      // Get user to ensure they still exist
       const user = await this.repos.getById(data.user.id)
       if (!user) {
         throw new Error('Invalid refresh token/user')

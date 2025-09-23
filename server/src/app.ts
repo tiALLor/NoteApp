@@ -4,6 +4,7 @@ import {
   type CreateExpressContextOptions,
 } from '@trpc/server/adapters/express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import morganMiddleware from './middleware/morganMiddleware'
 import logger from './utils/logger'
 import type { Database } from './database'
@@ -11,14 +12,27 @@ import { appRouter } from './controllers'
 import type { Context } from './trpc'
 import { AuthService } from './middleware/authService'
 
-
 export default function createApp(db: Database) {
   // Create authService
   const authService = new AuthService(db)
 
   const app = express()
 
-  app.use(cors())
+  app.use(
+    cors({
+      origin: [
+        'http://localhost:5173', // Vite dev server
+        'http://localhost:8080', // Alternative dev port
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:8080',
+      ],
+      credentials: true, //  Allow cookies
+      // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+      exposedHeaders: ['Set-Cookie'],
+    })
+  )
+  app.use(cookieParser())
   app.use(express.json())
 
   // Endpoint for health checks - pinging the server to see if it's alive.
@@ -60,18 +74,6 @@ export default function createApp(db: Database) {
       router: appRouter,
     })
   )
-
-  // incompatibility with tRPC v10
-  // if (config.env === 'development') {
-  //   app.use('/api/v1/trpc-panel', (_, res) =>
-  //     res.send(
-  //       renderTrpcPanel(appRouter, {
-  //         url: `http://localhost:${config.port}/api/v1/trpc`,
-  //         transformer: 'superjson',
-  //       })
-  //     )
-  //   )
-  // }
 
   return app
 }

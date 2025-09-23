@@ -4,6 +4,7 @@ import signup from './signup'
 import changePassword from './changePassword'
 import removeUser from './removeUser'
 import refreshToken from './refreshToken'
+import authMe from './authMe'
 
 export default router({
   // for users
@@ -11,5 +12,6 @@ export default router({
   signup,
   changePassword,
   removeUser,
-  refreshToken
+  refreshToken,
+  authMe,
 })

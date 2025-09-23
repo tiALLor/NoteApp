@@ -1,8 +1,11 @@
 import { publicProcedure } from '@server/trpc'
 import { TRPCError } from '@trpc/server'
 import { assertError } from '@server/utils/errors'
+import logger from '@server/utils/logger'
+import { cookieOptions } from '@server/utils/cookies'
+import { z } from 'zod'
 
-export default publicProcedure.mutation(async ({ ctx }) => {
+export default publicProcedure.input(z.object({})).mutation(async ({ ctx }) => {
   if (!ctx.authService) {
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
@@ -11,7 +14,7 @@ export default publicProcedure.mutation(async ({ ctx }) => {
   }
 
   // Get refresh token from cookie
-  const refreshToken = ctx.req?.cookies?.refreshToken
+  const refreshToken = await ctx.req?.cookies?.refreshToken
 
   if (!refreshToken) {
     throw new TRPCError({
@@ -21,18 +24,15 @@ export default publicProcedure.mutation(async ({ ctx }) => {
   }
 
   try {
-    // Refresh tokens - access and also refresh
+    // Refresh the tokens - access and also refresh
     const tokens = await ctx.authService.refreshTokens(refreshToken)
 
     // Set new refresh token cookie
     if (ctx.res) {
-      ctx.res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/',
-      })
+      ctx.res.cookie('refreshToken', tokens.refreshToken, cookieOptions)
     }
+
+    logger.info('Refreshing Tokens')
 
     return {
       accessToken: tokens.accessToken,

@@ -74,6 +74,7 @@ it('returns a token if the user was logged in ', async () => {
     expect.objectContaining({
       httpOnly: true,
       sameSite: 'strict',
+
     })
   )
 })

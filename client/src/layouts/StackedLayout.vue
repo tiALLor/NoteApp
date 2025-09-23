@@ -23,8 +23,8 @@ const navigation = computed(() =>
 <template>
   <FwbNavbar>
     <template #logo>
-      <fwb-navbar-logo alt="Cantina logo" image-url="/icons8-meal-100.png" link="Home">
-        Cantina
+      <fwb-navbar-logo alt="Note App logo" image-url="/icons8-note-100 (2).png" link="Home">
+        Note app
       </fwb-navbar-logo>
     </template>
     <template #default="{ isShowMenu }">

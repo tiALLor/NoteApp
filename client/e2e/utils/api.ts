@@ -4,8 +4,6 @@ import type { AppRouter } from '@server/shared/trpc'
 import { fakeUser } from './fakeData'
 import type { Page } from '@playwright/test'
 // import testUser with admin role
-import { testUser } from '@server/shared/forTests'
-import type { EntityRole } from '@server/shared/types'
 
 let accessToken: string | null = null
 
@@ -37,28 +35,27 @@ export const trpc = createTRPCProxyClient<AppRouter>({
   ],
 })
 
-type UserCreate = Parameters<typeof trpc.user.createUser.mutate>[0]
+// type UserCreate = Parameters<typeof trpc.user.createUser.mutate>[0]
 
-export async function signInUser(userData: UserCreate = fakeUser()): Promise<void> {
-  const loginResponse = await trpc.user.login.mutate(testUser)
+// export async function signInUser(userData: UserCreate = fakeUser()): Promise<void> {
+//   const loginResponse = await trpc.user.login.mutate(testUser)
 
-  setAccessToken(loginResponse.accessToken)
-  try {
-    await trpc.user.createUser.mutate(userData)
-  } catch (error) {
-    // ignore cases when user already exists
-    // console.log(error)
-  }
+//   setAccessToken(loginResponse.accessToken)
+//   try {
+//     await trpc.user.createUser.mutate(userData)
+//   } catch (error) {
+//     // ignore cases when user already exists
+//     // console.log(error)
+//   }
 
-  setAccessToken(null)
-}
+//   setAccessToken(null)
+// }
 
 type UserSignup = Exclude<Parameters<typeof trpc.user.signup.mutate>[0], void>
 type UserLogin = Exclude<Parameters<typeof trpc.user.login.mutate>[0], void>
 type UserLoginAuthed = UserLogin & {
   id: number
-  name: string
-  roleName: EntityRole
+  userName: string
   accessToken: string
 }
 
@@ -77,13 +74,12 @@ export async function loginNewUser(userLogin: UserSignup = fakeUser()): Promise<
   const loginResponse = await trpc.user.login.mutate(userLogin)
   const userId = JSON.parse(atob(loginResponse.accessToken.split('.')[1])).user.id
   const userName = JSON.parse(atob(loginResponse.accessToken.split('.')[1])).user.name
-  const userRoleName = JSON.parse(atob(loginResponse.accessToken.split('.')[1])).user.roleName
+  // const userRoleName = JSON.parse(atob(loginResponse.accessToken.split('.')[1])).user.roleName
 
   return {
     ...userLogin,
     id: userId,
-    name: userName,
-    roleName: userRoleName,
+    userName: userName,
     accessToken: loginResponse.accessToken,
   }
 }
@@ -95,7 +91,7 @@ export async function asUser<T>(
 ): Promise<T> {
   // running independent tasks in parallel
   const [user] = await Promise.all([
-    loginNewUser({ ...userLogin, name: 'any' }),
+    loginNewUser({ ...userLogin, userName: 'any' }),
     (async () => {
       // if no page is open, go to the home page
       if (page.url() === 'about:blank') {
@@ -113,8 +109,7 @@ export async function asUser<T>(
     ({ accessToken, user }) => {
       window.__AUTH_STORE__.storeTokenAndUser(accessToken, {
         id: user.id,
-        name: user.name,
-        roleName: user.roleName,
+        userName: user.userName,
       })
     },
     { accessToken: user.accessToken, user }

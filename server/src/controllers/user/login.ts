@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server'
 import { userSchema } from '@server/entities/user'
 import logger from '@server/utils/logger'
 import { assertError } from '@server/utils/errors'
+import { cookieOptions } from '@server/utils/cookies'
 
 export default publicProcedure
   .input(
@@ -25,12 +26,7 @@ export default publicProcedure
         password
       )
       if (ctx.res) {
-        ctx.res.cookie('refreshToken', refreshToken, {
-          httpOnly: true,
-          sameSite: 'strict',
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/',
-        })
+        ctx.res.cookie('refreshToken', refreshToken, cookieOptions)
       }
 
       return { user, accessToken }

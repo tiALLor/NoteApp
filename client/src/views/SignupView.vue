@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { signup } from '@/utils/auth'
+import { useUserAuthStore } from '@/stores/userAuthStore'
 import { ref } from 'vue'
 import PageForm from '@/components/PageForm.vue'
 import { FwbAlert, FwbButton, FwbInput } from 'flowbite-vue'
@@ -9,17 +9,16 @@ import useErrorMessage from '@/composables/useErrorMessage'
 const userForm = ref({
   email: '',
   password: '',
-  name: '',
-  roleId: 3,
+  userName: '',
 })
 
 const hasSucceeded = ref(false)
 
 // function, which creates an error message ref and handles the try/catch block
 const [submitSignup, errorMessage] = useErrorMessage(async () => {
-  await signup(userForm.value)
-
-  hasSucceeded.value = true
+  const userAuthStore = useUserAuthStore()
+  const user = await userAuthStore.signup(userForm.value)
+  if (user) hasSucceeded.value = true
 })
 </script>
 
@@ -30,7 +29,7 @@ const [submitSignup, errorMessage] = useErrorMessage(async () => {
         data-testid="name"
         label="User Name"
         type="text"
-        v-model="userForm.name"
+        v-model="userForm.userName"
         :required="true"
       />
 

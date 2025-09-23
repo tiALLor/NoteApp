@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useUserAuthStore } from '@/stores/user'
+import { useUserAuthStore } from '@/stores/userAuthStore'
 
 const userAuthStore = useUserAuthStore()
 </script>
@@ -7,9 +7,8 @@ const userAuthStore = useUserAuthStore()
 <template>
   <div class="lg:w-1/2">
     <h2 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
-      {{ userAuthStore.authUser?.name }}
+      {{ userAuthStore.authUser?.userName }}
       <br />
-      logged as {{ userAuthStore.authUser?.roleName }}
     </h2>
   </div>
 </template>

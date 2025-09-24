@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { withError } from './error'
+import { describe, it, expect, vi } from 'vitest'
 
 describe('withError', () => {
   it('should call the provided function and return its result if no error occurs', async () => {

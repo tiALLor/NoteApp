@@ -2,6 +2,7 @@ import { createCallerFactory } from '@server/trpc'
 import userRouter from '@server/controllers/user'
 import { AuthService } from '@server/middleware/authService'
 import { TRPCError } from '@trpc/server'
+import { cookieOptions } from '@server/utils/cookies'
 
 // we do not need a database for this test
 const db = {} as any
@@ -43,7 +44,7 @@ it('should return a if a valid refresh token is provided', async () => {
     } as any,
     res: mockRes as any,
   })
-  const response = await refreshToken()
+  const response = await refreshToken({})
 
   expect(response).toEqual({ accessToken: 'NEW_ACCESS_TOKEN' })
 
@@ -51,10 +52,7 @@ it('should return a if a valid refresh token is provided', async () => {
   expect(cookieMock).toHaveBeenCalledWith(
     'refreshToken',
     'NEW_REFRESH_TOKEN',
-    expect.objectContaining({
-      httpOnly: true,
-      sameSite: 'strict',
-    })
+    expect.objectContaining(cookieOptions)
   )
 })
 it('should throw an error if invalid refresh token', async () => {
@@ -68,7 +66,7 @@ it('should throw an error if invalid refresh token', async () => {
     res: mockRes as any,
   })
 
-  await expect(refreshToken()).rejects.toThrow(
+  await expect(refreshToken({})).rejects.toThrow(
     /Invalid or expired refresh token/i
   )
   expect(clearCookieMock).toHaveBeenCalledWith('refreshToken')
@@ -84,7 +82,7 @@ it('should throw an error if no refresh token', async () => {
     res: mockRes as any,
   })
 
-  await expect(refreshToken()).rejects.toThrow(
+  await expect(refreshToken({})).rejects.toThrow(
     /No refresh token provided/i
   )
 })

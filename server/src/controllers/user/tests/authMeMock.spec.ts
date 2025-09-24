@@ -43,7 +43,7 @@ it('should return user with a valid token', async () => {
   )
 
   // Act
-  const response = await authMe()
+  const response = await authMe({})
 
   // Assert
   expect(response).toEqual({
@@ -63,7 +63,7 @@ it('should throw UNAUTHORIZED for invalid token', async () => {
     })
   )
 
-  await expect(authMe()).rejects.toThrow('Invalid token')
+  await expect(authMe({})).rejects.toThrow('Invalid token')
 })
 
 it('should throw UNAUTHORIZED for invalid token', async () => {
@@ -77,5 +77,5 @@ it('should throw UNAUTHORIZED for invalid token', async () => {
     })
   )
 
-  await expect(authMe()).rejects.toThrow('Invalid token')
+  await expect(authMe({})).rejects.toThrow('Invalid token')
 })

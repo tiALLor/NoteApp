@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server'
 import type { AuthService } from '@server/middleware/authService'
 import logger from '@server/utils/logger'
 import type { Logger } from 'winston'
+import { cookieOptions } from '@server/utils/cookies'
 
 // we do not need a database for this test
 const db = {} as any
@@ -71,11 +72,7 @@ it('returns a token if the user was logged in ', async () => {
   expect(cookieMock).toHaveBeenCalledWith(
     'refreshToken',
     VALID_REFRESH_TOKEN,
-    expect.objectContaining({
-      httpOnly: true,
-      sameSite: 'strict',
-
-    })
+    expect.objectContaining(cookieOptions)
   )
 })
 
@@ -132,10 +129,7 @@ it('allows logging in with different email case', async () => {
   expect(cookieMock).toHaveBeenCalledWith(
     'refreshToken',
     VALID_REFRESH_TOKEN,
-    expect.objectContaining({
-      httpOnly: true,
-      sameSite: 'strict',
-    })
+    expect.objectContaining(cookieOptions)
   )
 })
 
@@ -154,9 +148,6 @@ it('allows logging in with surrounding white space', async () => {
   expect(cookieMock).toHaveBeenCalledWith(
     'refreshToken',
     VALID_REFRESH_TOKEN,
-    expect.objectContaining({
-      httpOnly: true,
-      sameSite: 'strict',
-    })
+    expect.objectContaining(cookieOptions)
   )
 })

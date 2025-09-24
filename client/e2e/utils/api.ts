@@ -3,7 +3,8 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client'
 import type { AppRouter } from '@server/shared/trpc'
 import { fakeUser } from './fakeData'
 import type { Page } from '@playwright/test'
-// import testUser with admin role
+import { UserPublic } from '@server/shared/types'
+import SuperJSON from 'superjson'
 
 let accessToken: string | null = null
 
@@ -14,16 +15,19 @@ function setAccessToken(token: string | null) {
 declare global {
   interface Window {
     __AUTH_STORE__: {
-      storeTokenAndUser: (
-        accessToken: string,
-        user: { id: number; name: string; roleName: string }
-      ) => void
+      // storeTokenAndUser: (
+      //   accessToken: string,
+      //   user: { id: number; userName: string }
+      // ) => void
       isLoggedIn: boolean
+      authUser: UserPublic
+      accessToken: string
     }
   }
 }
 
 export const trpc = createTRPCProxyClient<AppRouter>({
+  transformer: SuperJSON,
   links: [
     httpBatchLink({
       url: `${apiOrigin}${apiPath}`,
@@ -107,10 +111,15 @@ export async function asUser<T>(
   // we should be fine.
   await page.evaluate(
     ({ accessToken, user }) => {
-      window.__AUTH_STORE__.storeTokenAndUser(accessToken, {
+      // window.__AUTH_STORE__.storeTokenAndUser(accessToken, {
+      //   id: user.id,
+      //   userName: user.userName,
+      // })
+      ;((window.__AUTH_STORE__.authUser = {
         id: user.id,
         userName: user.userName,
-      })
+      }),
+        (window.__AUTH_STORE__.accessToken = accessToken))
     },
     { accessToken: user.accessToken, user }
   )

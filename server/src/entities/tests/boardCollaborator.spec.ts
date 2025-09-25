@@ -2,8 +2,8 @@ import { omit } from 'lodash-es'
 import {
   boardCollaboratorSchema,
   boardCollaboratorInsertableSchema,
-  changeBoardCollaboratorSchema,
-  publicBoardCollaboratorSchema,
+  boardCollaboratorUpdateableSchema,
+  boardCollaboratorPublicSchema,
 } from '../boardCollaborator'
 import { fakeBoardCollaborator } from './fakes'
 
@@ -87,18 +87,18 @@ describe('boardCollaboratorInsertableSchema', () => {
   })
 })
 
-describe('changeBoardCollaboratorSchema', () => {
-  it('should parse insertable correctly', async () => {
+describe('boardCollaboratorUpdateableSchema', () => {
+  it('should parse updateable correctly', async () => {
     const record = { ...fakeBoardCollaborator() }
 
-    expect(changeBoardCollaboratorSchema.parse(record)).toEqual(record)
+    expect(boardCollaboratorUpdateableSchema.parse(record)).toEqual(record)
   })
 })
 
-describe('publicBoardCollaboratorSchema', () => {
-  it('should parse insertable correctly', async () => {
+describe('boardCollaboratorPublicSchema', () => {
+  it('should parse publicSchema correctly', async () => {
     const record = { ...fakeBoardCollaborator() }
 
-    expect(publicBoardCollaboratorSchema.parse(record)).toEqual(record)
+    expect(boardCollaboratorPublicSchema.parse(record)).toEqual(record)
   })
 })

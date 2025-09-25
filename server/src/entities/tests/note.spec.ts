@@ -2,8 +2,8 @@ import { omit, pick } from 'lodash-es'
 import {
   noteSchema,
   noteInsertableSchema,
-  changeNoteSchema,
-  publicNoteSchema,
+  noteUpdateableSchema,
+  notePublicSchema,
   changeIsDoneNoteSchema,
 } from '../note'
 import { fakeNote } from './fakes'
@@ -136,18 +136,18 @@ describe('insertableNoteSchema', () => {
   })
 })
 
-describe('changeNoteSchema', () => {
+describe('noteUpdateableSchema', () => {
   it('should parse updateable correctly', async () => {
     const record = { ...fakeNote(), id: 123 }
 
-    expect(changeNoteSchema.parse(record)).toEqual(
+    expect(noteUpdateableSchema.parse(record)).toEqual(
       pick(record, ['content', 'contentEmbedding'])
     )
   })
 })
 
-describe('publicNoteSchema', () => {
-  it('should parse selectable correctly', async () => {
+describe('notePublicSchema', () => {
+  it('should parse publicSchema correctly', async () => {
     const record = {
       ...fakeNote(),
       id: 123,
@@ -155,7 +155,7 @@ describe('publicNoteSchema', () => {
       createdAt: new Date().toISOString(),
     }
 
-    expect(publicNoteSchema.parse(record)).toEqual(
+    expect(notePublicSchema.parse(record)).toEqual(
       omit(record, ['contentEmbedding'])
     )
   })

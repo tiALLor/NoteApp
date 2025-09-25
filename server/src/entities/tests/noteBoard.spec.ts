@@ -2,8 +2,8 @@ import { omit, pick } from 'lodash-es'
 import {
   noteBoardSchema,
   noteBoardInsertableSchema,
-  changeNoteBoardSchema,
-  publicNoteBoardSchema,
+  noteBoardUpdateableSchema,
+  noteBoardPublicSchema,
 } from '../noteBoard'
 import { fakeNoteBoard } from './fakes'
 
@@ -98,22 +98,24 @@ describe('insertableNoteSchema', () => {
   })
 })
 
-describe('changeNoteBoardSchema', () => {
+describe('noteBoardUpdateableSchema', () => {
   it('should parse updateable correctly', async () => {
     const record = { ...fakeNoteBoard(), id: 123 }
 
-    expect(changeNoteBoardSchema.parse(record)).toEqual(pick(record, ['title']))
+    expect(noteBoardUpdateableSchema.parse(record)).toEqual(
+      pick(record, ['title'])
+    )
   })
 })
 
-describe('publicNoteSchema', () => {
-  it('should parse selectable correctly', async () => {
+describe('noteBoardPublicSchema', () => {
+  it('should parse publicSchema correctly', async () => {
     const record = {
       ...fakeNoteBoard(),
       id: 123,
       createdAt: new Date().toISOString(),
     }
 
-    expect(publicNoteBoardSchema.parse(record)).toEqual(record)
+    expect(noteBoardPublicSchema.parse(record)).toEqual(record)
   })
 })

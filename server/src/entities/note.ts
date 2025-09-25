@@ -35,12 +35,12 @@ export type NoteInsertable = z.infer<typeof noteInsertableSchema>
 // updateable
 // ===========================================
 
-export const changeNoteSchema = noteInsertableSchema.pick({
+export const noteUpdateableSchema = noteInsertableSchema.pick({
   content: true,
   contentEmbedding: true,
 })
 
-export type ChangeNote = z.infer<typeof changeNoteSchema>
+export type NoteUpdateable = z.infer<typeof noteUpdateableSchema>
 
 export const changeIsDoneNoteSchema = noteSchema.pick({
   isDone: true,
@@ -51,6 +51,6 @@ export type ChangeIsDoneNote = z.infer<typeof changeIsDoneNoteSchema>
 // ===========================================
 // selectable
 // ===========================================
-export const publicNoteSchema = noteSchema.omit({ contentEmbedding: true })
+export const notePublicSchema = noteSchema.omit({ contentEmbedding: true })
 
-export type PublicNote = z.infer<typeof publicNoteSchema>
+export type NotePublic = z.infer<typeof notePublicSchema>

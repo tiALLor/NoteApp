@@ -26,17 +26,17 @@ export type BoardCollaboratorInsertable = z.infer<
 // ===========================================
 // updateable for delate
 // ===========================================
-export const changeBoardCollaboratorSchema = boardCollaboratorSchema
+export const boardCollaboratorUpdateableSchema = boardCollaboratorSchema
 
-export type ChangeBoardCollaborator = z.infer<
-  typeof changeBoardCollaboratorSchema
+export type BoardCollaboratorUpdateable = z.infer<
+  typeof boardCollaboratorUpdateableSchema
 >
 
 // ===========================================
 // selectable
 // ===========================================
-export const publicBoardCollaboratorSchema = boardCollaboratorSchema
+export const boardCollaboratorPublicSchema = boardCollaboratorSchema
 
-export type PublicBoardCollaborator = z.infer<
-  typeof publicBoardCollaboratorSchema
+export type BoardCollaboratorPublic = z.infer<
+  typeof boardCollaboratorPublicSchema
 >

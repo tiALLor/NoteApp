@@ -29,15 +29,15 @@ export type NoteBoardInsertable = z.infer<typeof noteBoardInsertableSchema>
 // ===========================================
 // updateable
 // ===========================================
-export const changeNoteBoardSchema = noteBoardSchema.pick({
+export const noteBoardUpdateableSchema = noteBoardSchema.pick({
   title: true,
 })
 
-export type ChangeNoteSchema = z.infer<typeof changeNoteBoardSchema>
+export type NoteBoardUpdateAble = z.infer<typeof noteBoardUpdateableSchema>
 
 // ===========================================
 // selectable
 // ===========================================
-export const publicNoteBoardSchema = noteBoardSchema
+export const noteBoardPublicSchema = noteBoardSchema
 
-export type PublicNoteBoard = z.infer<typeof publicNoteBoardSchema>
+export type NoteBoardPublic = z.infer<typeof noteBoardPublicSchema>

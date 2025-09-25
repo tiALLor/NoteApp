@@ -33,7 +33,9 @@ describe('create user', () => {
       eb('id', '=', user.id)
     )
 
-    expect(userInDatabase).toEqual(fakeUserWithHashMatcher({ ...record, id: user.id}))
+    expect(userInDatabase).toEqual(
+      fakeUserWithHashMatcher({ ...record, id: user.id })
+    )
     // expect(userInDatabase).toMatchObject({
     //   ...record,
     //   id: user.id,
@@ -179,5 +181,27 @@ describe('deleteUserById', () => {
     const result = await repository.deleteUserById(99999)
 
     expect(result).toBeUndefined()
+  })
+
+  describe('setLoginDateTimeByIdById', () => {
+    it('should return a user with updated lastLogin for user with Id', async () => {
+      // arrange
+      const loginDateTime = new Date().toISOString()
+      const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
+
+      // act
+      const user = await repository.setLoginDateTimeById(
+        userTwo.id,
+        loginDateTime
+      )
+
+      expect(user?.lastLogin?.toISOString()).toBe(loginDateTime)
+    })
+
+    it('should return undefined if user do not exist', async () => {
+      const user = await repository.getById(9999999)
+
+      expect(user).toBeUndefined()
+    })
   })
 })

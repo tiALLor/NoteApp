@@ -17,3 +17,9 @@ export const randomValidPassword = (): string => {
   }
   throw new Error('Failed to generate a valid password after 1000 attempts')
 }
+
+export const randomVector = (size: number): number[] => {
+  const min = -1
+  const max = 1
+  return Array.from({ length: size }, () => Math.random() * (max - min) + min)
+}

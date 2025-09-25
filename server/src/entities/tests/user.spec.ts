@@ -1,7 +1,7 @@
 import { omit } from 'lodash-es'
 import {
   userSchema,
-  userInsertable,
+  userInsertableSchema,
   changePasswordSchema,
   userPublicSchema,
 } from '../user'
@@ -112,7 +112,7 @@ describe('insertableUser', () => {
       password: 'OKpassword123.',
     }
 
-    expect(userInsertable.parse(record)).toEqual({
+    expect(userInsertableSchema.parse(record)).toEqual({
       userName: 'John Doe',
       email: 'abf@mail.com',
       password: 'OKpassword123.',

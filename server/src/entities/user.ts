@@ -12,8 +12,8 @@ export const userSchema = z.object({
   // email: z.string().toLowerCase().trim().email(),
   email: z.string().toLowerCase().trim().max(255).email(),
   password: passwordSchema,
-  createdAt: dateSchema.optional(),
-  updatedAt: dateSchema.optional(),
+  createdAt: dateTimeSchema.optional(),
+  updatedAt: dateTimeSchema.optional(),
   lastLogin: dateTimeSchema.optional().nullable(),
 })
 
@@ -37,11 +37,11 @@ export const userWithHashKeyAll = Object.keys(
 // ===========================================
 // insertable
 // ===========================================
-export const userInsertable = userSchema
+export const userInsertableSchema = userSchema
   .pick({ userName: true, email: true, password: true })
   .extend({ id: userSchema.shape.id.optional() })
 
-export type UserInsertable = z.infer<typeof userInsertable>
+export type UserInsertable = z.infer<typeof userInsertableSchema>
 
 export const userWithHashInsertable = userWithHashSchema.pick({
   userName: true,

@@ -40,6 +40,7 @@ const mockUserRepository = {
   create: vi.fn(),
   updatePassword: vi.fn(),
   deleteUserById: vi.fn(),
+  setLoginDateTimeById: vi.fn(),
 }
 
 vi.mock('@server/repositories/userRepository', () => ({
@@ -222,6 +223,9 @@ describe('login', () => {
 
     mockUserRepository.getByEmail.mockResolvedValue(fakeTestUserWithHash)
 
+    const loginDateTime = new Date().toISOString()
+    mockUserRepository.setLoginDateTimeById.mockResolvedValue(loginDateTime)
+
     // Act
     const result = await authService.login('test@example.com', 'password123')
 
@@ -233,6 +237,10 @@ describe('login', () => {
     })
     expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(
       'test@example.com'
+    )
+    expect(mockUserRepository.setLoginDateTimeById).toHaveBeenCalledWith(
+      fakeTestUserWithHash.id,
+      loginDateTime
     )
     expect(bcrypt.compare).toHaveBeenCalledWith(
       'password123test-pepper',
@@ -586,7 +594,7 @@ describe('verifyAccessToken', () => {
 
         // Assert
         expect(result).toBe('hashed-result')
-        expect(bcrypt.hash).toHaveBeenCalledWith('passwordtest-pepper',10)
+        expect(bcrypt.hash).toHaveBeenCalledWith('passwordtest-pepper', 10)
       })
     })
 

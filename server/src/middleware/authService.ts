@@ -134,6 +134,17 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokenPair(userPublic)
 
+    // save login datetime stamp to database
+    try {
+      const loginDateTime = new Date().toISOString()
+      this.repos.setLoginDateTimeById(user.id, loginDateTime)
+    } catch (err) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Invalid email or password',
+      })
+    }
+
     return { ...tokens, user: userPublic }
   }
 

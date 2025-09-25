@@ -54,3 +54,7 @@ export type ChangeIsDoneNote = z.infer<typeof changeIsDoneNoteSchema>
 export const notePublicSchema = noteSchema.omit({ contentEmbedding: true })
 
 export type NotePublic = z.infer<typeof notePublicSchema>
+
+export const noteKeyPublic = Object.keys(
+  notePublicSchema.shape
+) as (keyof NotePublic)[]

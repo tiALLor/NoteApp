@@ -40,3 +40,7 @@ export const boardCollaboratorPublicSchema = boardCollaboratorSchema
 export type BoardCollaboratorPublic = z.infer<
   typeof boardCollaboratorPublicSchema
 >
+
+export const boardCollaboratorKeyPublic = Object.keys(
+  boardCollaboratorPublicSchema.shape
+) as (keyof BoardCollaboratorPublic)[]

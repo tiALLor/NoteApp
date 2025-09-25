@@ -41,3 +41,7 @@ export type NoteBoardUpdateAble = z.infer<typeof noteBoardUpdateableSchema>
 export const noteBoardPublicSchema = noteBoardSchema
 
 export type NoteBoardPublic = z.infer<typeof noteBoardPublicSchema>
+
+export const noteBoardKeyPublic = Object.keys(
+  noteBoardPublicSchema.shape
+) as (keyof NoteBoardPublic)[]

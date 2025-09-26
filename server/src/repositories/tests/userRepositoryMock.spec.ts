@@ -1,7 +1,3 @@
-// ===========================================
-// FIXED USER REPOSITORY TEST - PROPER MOCK SETUP
-// ===========================================
-
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { Database, User } from '@server/database'
 import type { Selectable } from 'kysely'
@@ -101,7 +97,7 @@ describe('UserRepository', () => {
   })
 
   // ===========================================
-  // CREATE USER TESTS - FIXED VERSION
+  // CREATE USER TESTS
   // ===========================================
   describe('create', () => {
     it('should successfully create a new user and return public data', async () => {
@@ -269,99 +265,5 @@ describe('UserRepository', () => {
       )
       expect(notFoundQueryBuilder.where).toHaveBeenCalledWith('id', '=', 999)
     })
-  })
-})
-
-// ===========================================
-// ALTERNATIVE APPROACH - USING vi.fn() DIRECTLY
-// ===========================================
-
-describe('UserRepository - Alternative Mock Approach', () => {
-  let repository: UserRepository
-  let mockDB: Database
-
-  beforeEach(() => {
-    // Create all mocks fresh for each test
-    const mockQueryBuilder = {
-      where: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      executeTakeFirst: vi.fn(),
-      executeTakeFirstOrThrow: vi.fn(),
-    }
-
-    mockDB = {
-      insertInto: vi.fn().mockReturnValue(mockQueryBuilder),
-      selectFrom: vi.fn().mockReturnValue(mockQueryBuilder),
-      updateTable: vi.fn().mockReturnValue(mockQueryBuilder),
-      deleteFrom: vi.fn().mockReturnValue(mockQueryBuilder),
-    } as unknown as Database
-
-    repository = userRepository(mockDB)
-  })
-
-  it('should create user successfully', async () => {
-    // Arrange
-    const testUser = {
-      email: 'test@test.com',
-      userName: 'test',
-      passwordHash: 'hash',
-    }
-    const expectedResult = { id: 1, userName: 'test' }
-
-    // Get reference to the mocks through the repository
-    const db = (repository as any).db || mockDB
-    const queryBuilder = db.insertInto('user')
-
-    // Setup the mock chain
-    queryBuilder.executeTakeFirstOrThrow.mockResolvedValue(expectedResult)
-
-    // Act & Assert
-    const result = await repository.create(testUser)
-    expect(result).toEqual(expectedResult)
-  })
-})
-
-// ===========================================
-// SIMPLE WORKING EXAMPLE
-// ===========================================
-
-describe('UserRepository - Simple Working Example', () => {
-  it('should work with basic mocking', async () => {
-    // Create a simple mock that just works
-    const mockResult = { id: 1, userName: 'testuser' }
-
-    const mockDB = {
-      insertInto: vi.fn(() => ({
-        values: vi.fn(() => ({
-          returning: vi.fn(() => ({
-            executeTakeFirstOrThrow: vi.fn().mockResolvedValue(mockResult),
-          })),
-        })),
-      })),
-      selectFrom: vi.fn(() => ({
-        where: vi.fn(() => ({
-          select: vi.fn(() => ({
-            executeTakeFirst: vi.fn().mockResolvedValue(mockResult),
-          })),
-        })),
-      })),
-      updateTable: vi.fn(() => ({})),
-      deleteFrom: vi.fn(() => ({})),
-    } as unknown as Database
-
-    const repo = userRepository(mockDB)
-
-    const testUser = {
-      email: 'test@test.com',
-      userName: 'testuser',
-      passwordHash: 'hash',
-    }
-
-    const result = await repo.create(testUser)
-    expect(result).toEqual(mockResult)
-    expect(mockDB.insertInto).toHaveBeenCalledWith('user')
   })
 })

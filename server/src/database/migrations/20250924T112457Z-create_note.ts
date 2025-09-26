@@ -32,9 +32,7 @@ export async function up(db: Kysely<any>) {
       col.references('note_board.id').onDelete('cascade').notNull()
     )
     .addColumn('content', 'text', (col) => col.defaultTo('').notNull())
-    .addColumn('content_embedding', sql.raw(`vector(${vectorSize})`), (col) =>
-      col.notNull()
-    )
+    .addColumn('content_embedding', sql.raw(`vector(${vectorSize})`))
     .addColumn('isDone', 'boolean', (col) => col.defaultTo('false').notNull())
     .addColumn('created_at', 'timestamptz', (col) =>
       col.defaultTo(sql`CURRENT_TIMESTAMP`).notNull()

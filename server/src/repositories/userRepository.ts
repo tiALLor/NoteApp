@@ -78,8 +78,10 @@ export function userRepository(db: Database) {
         .executeTakeFirst()
     },
 
-    async setLoginDateTimeById(id: number, loginDateTime: string): Promise<Selectable<User> | undefined> {
-
+    async setLoginDateTimeById(
+      id: number,
+      loginDateTime: string
+    ): Promise<Selectable<User> | undefined> {
       const result = await db
         .updateTable('user')
         .set({ lastLogin: loginDateTime })
@@ -90,6 +92,10 @@ export function userRepository(db: Database) {
       if (!result) throw new Error('User Not Found')
 
       return result
+    },
+
+    async getUserAll(): Promise<UserPublic[]> {
+      return db.selectFrom('user').select(userKeyPublic).execute()
     },
   }
 }

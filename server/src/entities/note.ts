@@ -13,7 +13,7 @@ export const noteSchema = z.object({
   id: idSchema,
   boardId: idSchema,
   content: z.string().trim().min(1),
-  contentEmbedding: z.array(z.number()).length(vectorSize),
+  contentEmbedding: z.array(z.number()).length(vectorSize).optional(),
   createdAt: dateTimeSchema.optional(),
   isDone: z.boolean().default(false),
 })
@@ -27,6 +27,7 @@ export const noteInsertableSchema = noteSchema.pick({
   boardId: true,
   content: true,
   contentEmbedding: true,
+  createdAt: true,
 })
 
 export type NoteInsertable = z.infer<typeof noteInsertableSchema>
@@ -35,18 +36,26 @@ export type NoteInsertable = z.infer<typeof noteInsertableSchema>
 // updateable
 // ===========================================
 
-export const noteUpdateableSchema = noteInsertableSchema.pick({
+export const noteUpdateableSchema = noteSchema.pick({
+  id: true,
   content: true,
-  contentEmbedding: true,
 })
 
 export type NoteUpdateable = z.infer<typeof noteUpdateableSchema>
 
-export const changeIsDoneNoteSchema = noteSchema.pick({
+export const noteEmbUpdateableSchema = z.object({
+  id: idSchema,
+  contentEmbedding: z.array(z.number()).length(vectorSize),
+})
+
+export type NoteEmbUpdateable = z.infer<typeof noteEmbUpdateableSchema>
+
+export const NoteIsDoneUpdateableSchema = noteSchema.pick({
+  id: true,
   isDone: true,
 })
 
-export type ChangeIsDoneNote = z.infer<typeof changeIsDoneNoteSchema>
+export type ChangeIsDoneNote = z.infer<typeof NoteIsDoneUpdateableSchema>
 
 // ===========================================
 // selectable

@@ -15,7 +15,7 @@ export interface BoardCollaborator {
 export interface Note {
   boardId: Generated<number>
   content: Generated<string>
-  contentEmbedding: string
+  contentEmbedding: string | null
   createdAt: Generated<Timestamp>
   id: Generated<number>
   isDone: Generated<boolean>

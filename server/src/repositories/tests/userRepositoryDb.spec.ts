@@ -5,10 +5,23 @@ import {
   fakeUserWithHash,
   fakeUserWithHashMatcher,
 } from '@server/entities/tests/fakes'
+import type { Database } from '@server/database'
 import { userRepository } from '../userRepository'
 
-const db = await wrapInRollbacks(createTestDatabase())
+let db: Database
+try {
+  db = await wrapInRollbacks(createTestDatabase())
+} catch {
+  console.log('Console Error: Please provide database')
+  process.exit(1)
+}
+
 const repository = userRepository(db)
+
+await db.deleteFrom('boardCollaborator').execute()
+await db.deleteFrom('note').execute()
+await db.deleteFrom('noteBoard').execute()
+await db.deleteFrom('user').execute()
 
 beforeEach(async () => {
   await db.deleteFrom('user').execute()
@@ -46,6 +59,9 @@ describe('create user', () => {
   })
 })
 
+// ===========================================
+// GET USER BY ID
+// ===========================================
 describe('getById', () => {
   it('should return a user according to provided Id', async () => {
     const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
@@ -63,9 +79,13 @@ describe('getById', () => {
   })
 })
 
+// ===========================================
+// GET USER BY USERNAME
+// ===========================================
 describe('getByUserName', () => {
   it('should return a user according to provided userName', async () => {
     const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
+
     const user = await repository.getByUserName(userTwo.userName)
 
     expect(user).toEqual({
@@ -80,9 +100,13 @@ describe('getByUserName', () => {
   })
 })
 
+// ===========================================
+// GET USER BY EMAIL
+// ===========================================
 describe('getByEmail', () => {
   it('should return a user according to provided email', async () => {
     const [userOne] = await insertAll(db, 'user', [fakeUserWithHash()])
+
     const user = await repository.getByEmail(userOne.email)
 
     expect(user).toEqual(userOne)
@@ -95,6 +119,9 @@ describe('getByEmail', () => {
   })
 })
 
+// ===========================================
+// CHANGE PASSWORD
+// ===========================================
 describe('change password', () => {
   it('should change the password ', async () => {
     const record = fakeUserWithHash({
@@ -129,6 +156,9 @@ describe('change password', () => {
   })
 })
 
+// ===========================================
+// DELETE USER BY EMAIL
+// ===========================================
 describe('deleteUserByEmail', () => {
   it('should delete a user base on email', async () => {
     const [userToBeDeleted] = await insertAll(
@@ -159,6 +189,9 @@ describe('deleteUserByEmail', () => {
   })
 })
 
+// ===========================================
+// DELETE USER BY ID
+// ===========================================
 describe('deleteUserById', () => {
   it('should delete a user base on id', async () => {
     const [userToBeDeleted] = await insertAll(db, 'user', fakeUserWithHash())
@@ -182,26 +215,89 @@ describe('deleteUserById', () => {
 
     expect(result).toBeUndefined()
   })
+})
 
-  describe('setLoginDateTimeByIdById', () => {
-    it('should return a user with updated lastLogin for user with Id', async () => {
-      // arrange
-      const loginDateTime = new Date().toISOString()
-      const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
+// ===========================================
+// SET LOGIN DATETIME
+// ===========================================
+describe('setLoginDateTimeByIdById', () => {
+  it('should return a user with updated lastLogin for user with Id', async () => {
+    // arrange
+    const loginDateTime = new Date().toISOString()
+    const [userTwo] = await insertAll(db, 'user', [fakeUserWithHash()])
 
-      // act
-      const user = await repository.setLoginDateTimeById(
-        userTwo.id,
-        loginDateTime
-      )
+    // act
+    const user = await repository.setLoginDateTimeById(
+      userTwo.id,
+      loginDateTime
+    )
 
-      expect(user?.lastLogin?.toISOString()).toBe(loginDateTime)
-    })
+    expect(user?.lastLogin?.toISOString()).toBe(loginDateTime)
+  })
 
-    it('should return undefined if user do not exist', async () => {
-      const user = await repository.getById(9999999)
+  it('should return undefined if user do not exist', async () => {
+    const user = await repository.getById(9999999)
 
-      expect(user).toBeUndefined()
-    })
+    expect(user).toBeUndefined()
+  })
+})
+
+// ===========================================
+// GET ALL USERS
+// ===========================================
+describe('get all users', () => {
+  it('should get all users in db', async () => {
+    const [userOne] = await insertAll(db, 'user', fakeUserWithHash())
+
+    const result = await repository.getUserAll()
+
+    expect(result).toEqual([
+      {
+        id: userOne.id,
+        userName: userOne.userName,
+      },
+    ])
+
+    // check directly in database
+    const userAllInDatabase = await selectAll(db, 'user')
+
+    expect(userAllInDatabase).toHaveLength(1)
+  })
+
+  it('should get all users in db more users', async () => {
+    const [userOne] = await insertAll(db, 'user', fakeUserWithHash())
+    const [userTwo] = await insertAll(db, 'user', fakeUserWithHash())
+
+    const result = await repository.getUserAll()
+
+    expect(result).toEqual([
+      {
+        id: userOne.id,
+        userName: userOne.userName,
+      },
+      {
+        id: userTwo.id,
+        userName: userTwo.userName,
+      },
+    ])
+
+    // check directly in database
+    const userAllInDatabase = await selectAll(db, 'user')
+
+    expect(userAllInDatabase).toHaveLength(2)
+    expect(userAllInDatabase.map((user: { id: any }) => user.id)).toEqual(
+      expect.arrayContaining([userOne.id, userTwo.id])
+    )
+  })
+
+  it('should return [] if not user', async () => {
+    const result = await repository.getUserAll()
+
+    expect(result).toEqual([])
+
+    // check directly in database
+    const userAllInDatabase = await selectAll(db, 'user')
+
+    expect(userAllInDatabase).toHaveLength(0)
   })
 })

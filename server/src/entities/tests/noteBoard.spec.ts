@@ -24,11 +24,16 @@ describe('noteSchema - schema parse', () => {
   it('should throw a error by missing value', async () => {
     const record = { ...fakeNoteBoard(), id: 123 }
 
-    expect(() => noteBoardSchema.parse(omit(record, ['id']))).toThrow(/id/i)
+    expect(noteBoardSchema.parse(omit(record, ['title']))).toEqual({
+      ...record,
+      title: 'general',
+    })
+  })
 
-    expect(() => noteBoardSchema.parse(omit(record, ['title']))).toThrow(
-      /title/i
-    )
+  it('should throw a error by missing value', async () => {
+    const record = { ...fakeNoteBoard(), id: 123 }
+
+    expect(() => noteBoardSchema.parse(omit(record, ['id']))).toThrow(/id/i)
 
     expect(() => noteBoardSchema.parse(omit(record, ['ownerId']))).toThrow(
       /ownerId/i
@@ -103,7 +108,7 @@ describe('noteBoardUpdateableSchema', () => {
     const record = { ...fakeNoteBoard(), id: 123 }
 
     expect(noteBoardUpdateableSchema.parse(record)).toEqual(
-      pick(record, ['title'])
+      pick(record, ['id', 'title'])
     )
   })
 })

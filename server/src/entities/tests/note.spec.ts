@@ -1,12 +1,18 @@
 import { omit, pick } from 'lodash-es'
+import { randomVector } from '@tests/utils/random'
 import {
   noteSchema,
   noteInsertableSchema,
   noteUpdateableSchema,
   notePublicSchema,
-  changeIsDoneNoteSchema,
+  NoteIsDoneUpdateableSchema,
+  noteEmbUpdateableSchema,
 } from '../note'
 import { fakeNote } from './fakes'
+
+// TODO: change to import from Embeddings service
+// cohere embedding service
+const vectorSize = 1536
 
 describe('noteSchema - schema parse', () => {
   it('should validate note correctly', async () => {
@@ -36,10 +42,6 @@ describe('noteSchema - schema parse', () => {
 
     expect(() => noteSchema.parse(omit(record, ['content']))).toThrow(
       /content/i
-    )
-
-    expect(() => noteSchema.parse(omit(record, ['contentEmbedding']))).toThrow(
-      /contentEmbedding/i
     )
   })
 
@@ -141,7 +143,46 @@ describe('noteUpdateableSchema', () => {
     const record = { ...fakeNote(), id: 123 }
 
     expect(noteUpdateableSchema.parse(record)).toEqual(
-      pick(record, ['content', 'contentEmbedding'])
+      pick(record, ['id', 'content'])
+    )
+  })
+})
+
+describe('NoteIsDoneUpdateableSchema', () => {
+  it('should parse isDone: true correctly', async () => {
+    const record = { id: 123, isDone: true }
+
+    expect(NoteIsDoneUpdateableSchema.parse(record)).toEqual(record)
+  })
+
+  it('should parse isDone: false correctly', async () => {
+    const record = { id: 123, isDone: false }
+
+    expect(NoteIsDoneUpdateableSchema.parse(record)).toEqual(record)
+  })
+
+  it('should throw a error by string', async () => {
+    const record = { id: 123, isDone: 'false' }
+
+    expect(() => NoteIsDoneUpdateableSchema.parse(record)).toThrow(/isDone/i)
+  })
+})
+
+describe('noteEmbUpdateableSchema', () => {
+  it('should parse publicSchema correctly', async () => {
+    const record = {
+      id: 123,
+      contentEmbedding: randomVector(vectorSize),
+    }
+
+    expect(noteEmbUpdateableSchema.parse(record)).toEqual(record)
+  })
+
+  it('should throw a error by missing value', async () => {
+    const record = {}
+
+    expect(() => noteEmbUpdateableSchema.parse(record)).toThrow(
+      /contentEmbedding/i
     )
   })
 })
@@ -158,25 +199,5 @@ describe('notePublicSchema', () => {
     expect(notePublicSchema.parse(record)).toEqual(
       omit(record, ['contentEmbedding'])
     )
-  })
-})
-
-describe('changeIsDoneNoteSchema', () => {
-  it('should parse isDone: true correctly', async () => {
-    const record = { isDone: true }
-
-    expect(changeIsDoneNoteSchema.parse(record)).toEqual(record)
-  })
-
-  it('should parse isDone: false correctly', async () => {
-    const record = { isDone: false }
-
-    expect(changeIsDoneNoteSchema.parse(record)).toEqual(record)
-  })
-
-  it('should throw a error by string', async () => {
-    const record = { isDone: 'false' }
-
-    expect(() => changeIsDoneNoteSchema.parse(record)).toThrow(/isDone/i)
   })
 })

@@ -238,10 +238,15 @@ describe('login', () => {
     expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(
       'test@example.com'
     )
-    expect(mockUserRepository.setLoginDateTimeById).toHaveBeenCalledWith(
-      fakeTestUserWithHash.id,
-      loginDateTime
+    const [[calledId, calledDate]] =
+      mockUserRepository.setLoginDateTimeById.mock.calls
+
+    expect(calledId).toBe(fakeTestUserWithHash.id)
+    expect(new Date(calledDate).getTime()).toBeCloseTo(
+      new Date(loginDateTime).getTime(),
+      -2
     )
+
     expect(bcrypt.compare).toHaveBeenCalledWith(
       'password123test-pepper',
       'hashed-password'

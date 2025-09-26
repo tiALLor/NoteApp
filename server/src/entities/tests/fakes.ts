@@ -61,7 +61,7 @@ export const fakeNote = <T extends Partial<NoteInsertable>>(
   ...overrides,
 })
 
-export const fakeNoteBoard = <T extends Partial<Insertable<BoardCollaborator>>>(
+export const fakeNoteBoard = <T extends Partial<NoteBoardInsertable>>(
   overrides: T = {} as T
 ): NoteBoardInsertable => ({
   title: random.string(),

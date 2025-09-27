@@ -1,5 +1,5 @@
 import { authContext, requestContext } from '@tests/utils/context'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 import { createCallerFactory, router } from '..'
 import { authenticatedProcedure } from '.'
 

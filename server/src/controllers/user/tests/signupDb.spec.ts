@@ -5,7 +5,7 @@ import { selectAll } from '@tests/utils/records'
 import { fakeUser } from '@server/entities/tests/fakes'
 import { random } from '@tests/utils/random'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 
 const db = await wrapInRollbacks(createTestDatabase())
 const authService = new AuthService(db)

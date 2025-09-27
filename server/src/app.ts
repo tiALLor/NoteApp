@@ -10,7 +10,7 @@ import logger from './utils/logger'
 import type { Database } from './database'
 import { appRouter } from './controllers'
 import type { Context } from './trpc'
-import { AuthService } from './middleware/authService'
+import { AuthService } from './services/authService'
 
 export default function createApp(db: Database) {
   // Create authService

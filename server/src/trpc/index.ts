@@ -8,7 +8,7 @@ import { ZodError } from 'zod'
 import { fromZodError } from 'zod-validation-error'
 import type { Repositories } from '@server/repositories'
 import logger from '@server/utils/logger'
-import type { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 
 export type Context = {
   db: Database

@@ -3,7 +3,7 @@ import { fakeUser } from '@server/entities/tests/fakes'
 import { authContext } from '@tests/utils/context'
 import { userPublicSchema } from '@server/entities/user'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 import { TRPCError } from '@trpc/server'
 
 // we do not need a database for this test

@@ -2,8 +2,8 @@ import { createCallerFactory } from '@server/trpc'
 import { fakeUser } from '@server/entities/tests/fakes'
 import { authContext } from '@tests/utils/context'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
 import { TRPCError } from '@trpc/server'
+import { AuthService } from '@server/services/authService'
 
 // we do not need a database for this test
 const db = {} as any

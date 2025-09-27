@@ -4,7 +4,7 @@ import { createTestDatabase } from '@tests/utils/database'
 import { insertAll } from '@tests/utils/records'
 import { fakeUserWithHash } from '@server/entities/tests/fakes'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 import type { Database } from '@server/database'
 
 let db: Database

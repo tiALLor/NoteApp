@@ -44,3 +44,12 @@ export type BoardCollaboratorPublic = z.infer<
 export const boardCollaboratorKeyPublic = Object.keys(
   boardCollaboratorPublicSchema.shape
 ) as (keyof BoardCollaboratorPublic)[]
+
+export const BoardCollaboratorPublicWithUserSchema =
+  boardCollaboratorPublicSchema.extend({
+    collaboratorUserName: z.string().trim().min(1).max(100),
+  })
+
+export type BoardCollaboratorPublicWithUser = z.infer<
+  typeof BoardCollaboratorPublicWithUserSchema
+>

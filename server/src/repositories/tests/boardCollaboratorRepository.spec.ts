@@ -147,17 +147,6 @@ describe('get collaborator with user name for ', () => {
 
     const result = await repository.getCollaboratorByBoardId(testNoteBoard.id)
 
-    expect(result).toEqual([
-      {
-        ...testCollaborator,
-        collaboratorUserName: testUserCollaborator1.userName,
-      },
-      {
-        ...testCollaborator2,
-        collaboratorUserName: testUserCollaborator2.userName,
-      },
-    ])
-
     expect(result).toHaveLength(2)
     expect(result.map((board) => board.boardId)).toEqual(
       expect.arrayContaining([

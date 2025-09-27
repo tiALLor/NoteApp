@@ -1,7 +1,7 @@
 import { createCallerFactory } from '@server/trpc'
 import { fakeUser } from '@server/entities/tests/fakes'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 import { TRPCError } from '@trpc/server'
 
 const db = {} as any

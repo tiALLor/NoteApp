@@ -1,6 +1,6 @@
 import { createCallerFactory } from '@server/trpc'
 import userRouter from '@server/controllers/user'
-import { AuthService } from '@server/middleware/authService'
+import { AuthService } from '@server/services/authService'
 import { TRPCError } from '@trpc/server'
 import { cookieOptions } from '@server/utils/cookies'
 
@@ -82,7 +82,5 @@ it('should throw an error if no refresh token', async () => {
     res: mockRes as any,
   })
 
-  await expect(refreshToken({})).rejects.toThrow(
-    /No refresh token provided/i
-  )
+  await expect(refreshToken({})).rejects.toThrow(/No refresh token provided/i)
 })

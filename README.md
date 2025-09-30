@@ -1,25 +1,61 @@
-# Full Stack Capstone Project
+# Real-time Collaborative Note-Taking App
 
-This project is a full-stack web application built with TypeScript, Express.js, tRPC, PostgreSQL, and Vue 3 (Vite). It is structured as a monorepo with separate `client` and `server` packages.
+This repository contains the backend server for a real-time collaborative note-taking application. It handles user authentication, note board management, real-time collaboration via WebSockets, and provides advanced semantic search capabilities for efficient information retrieval.
 
 ## Features
 
-- TypeScript throughout the stack
-- PostgreSQL database with migration support
-- Express.js server with tRPC endpoints
-- User authentication
-- Comprehensive back-end and front-end testing (Vitest, Playwright)
-- Monorepo structure for easy management of client and server
-- Linting and formatting with ESLint and Prettier
-- Role-based user access (`admin`, `chef`, `user`)
-- User with Role: admin can create other users will any given role
-- User with Role: chef can manage meals and menus
-- User with Role: user can order a menu and check
-- Signup only for user with role user
-- Users can order meals (`main`, `soup`) for future dates
-- Menus are created per day and meal
-- Secure password handling (bcrypt + pepper)
-- To "poke" its existing functionality use trpc-panel a http://localhost:3000/api/v1/trpc-panel or user rest.http file in /server/tests with REST Client
+- **User Authentication & Authorization:** Secure user registration, login, and session management using JWT. All data access is authorized based on user roles (owner/collaborator).
+- **Note Board Management:** Create, read, update, and delete note boards. Each board has an owner and can have multiple collaborators.
+- **Real-time Note Management:** Perform CRUD operations (Create, Read, Update, Delete) on notes within boards. Notes can be marked as `isDone`.
+- **WebSocket API:** All collaborative features (note updates, board changes, collaborator management) are synchronized in real-time using WebSockets.
+- **Semantic Search:** Advanced search functionality that understands the meaning of your query, powered by text embeddings and a vector database.
+- **Database:** PostgreSQL with `pgvector` extension for storing application data and vector embeddings.
+- **Type-Safe Development:** Built with TypeScript and Kysely for robust, type-safe database interactions.
+- **Client:** Basic client set up for interaction with backend server.
+
+- For more details please see in folder **./documentation**, folder is containing ERD diagram PRD documentation and short presentation for use of AGILE principles with **Kanban**
+
+## Technologies Used
+
+- **Node.js:** JavaScript runtime.
+- **Express.js:** Web application framework for RESTful APIs and HTTP server.
+- **TypeScript:** Type-safe JavaScript superset.
+- **Kysely:** Type-safe SQL query builder for Node.js.
+- **PostgreSQL:** Relational database with `pgvector` extension.
+- **tRPC endpoints** for HTTP requests
+- **ws:** WebSocket library for Node.js.
+- **Zod:** Schema declaration and validation library.
+- **jwt-simple:** For JSON Web Token handling.
+- **bcrypt:** For password hashing (with pepper).
+- **Vitest:** Unit and integration testing framework.
+- **Docker / Docker Compose:** For easy setup of the development environment (especially PostgreSQL).
+- **[Your Embedding Provider]:** (e.g., OpenAI API for text embeddings)
+- **back-end testing** (Vitest)
+- **vite + VUE** light weight client setup
+
+* **Monorepo** structure for easy management of client and server
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v20 or higher recommended)
+- npm or Yarn
+- Docker & Docker Compose (for easy PostgreSQL setup)
+
+### 1. Clone the Repository
+
+```bash
+git clone [YOUR_REPO_URL]
+```
+
+### 2. Install Dependencies
+
+1. `npm install`
+2. Create a PostgreSQL database with pg-vector with docker-compose.yml with
+   `docker compose up -d`, `docker compose down`,
+   or use an existing one
+3. Setup `.env` file based on `.env.example` files.
 
 ## Project Structure
 
@@ -108,61 +144,24 @@ This project is a full-stack web application built with TypeScript, Express.js, 
 
 ## How to poke and use
 
-link to running service:
+### Password rules
 
-https://cantina-service-1.g7k0w3n7paahe.eu-central-1.cs.amazonlightsail.com
-
-### 1. Admin Setup
-
-1. **Log in as admin using the default credentials:**
-
-   - **Email:**
-     ```
-     admin@admin.com
-     ```
-   - **Initial password:**
-     ```
-     changeAdminPass
-     ```
-
-2. **Create a new user with the `chef` role**  
-   Use the admin panel or API to add a chef.
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
+- At least one special character (!@#$%^&\*()\_+{}[]:;<>,.?~-)
 
 ---
 
-### 2. Chef Actions
+### API Exploration
 
-1. **Log in as the chef user you just created.**
-2. **Create meals**  
-   Add new meals to the system.
-3. **Create menus**  
-   Assign created meals to daily menus.
-
----
-
-### 3. User Actions
-
-1. **Sign up as a new user (role: `user`).**
-2. **Log in as the new user.**
-3. **Order menus**  
-   Place orders for available menus.
-4. **Change orders**  
-   Modify existing orders if needed.
-5. **Check order history**  
-   View your past orders.
-
----
-
-### 4. API Exploration
-
-- Use the [tRPC panel](http://localhost:3000/api/v1/trpc-panel) for interactive API testing.
-- Alternatively, use the REST Client requests in `/server/tests/rest.http`.
+- Use light weight client set up for interaction with the backend server, http://localhost:5173/
 
 ## Additional Notes
 
 - Ensure your `.env` files are correctly set up for both client and server.
 - See [client/README.md](client/README.md) and [server/README.md](server/README.md) for more detailed instructions for each package.
-- The project aims for at least 70% back-end test coverage.
 
 ## License
 

@@ -1,3 +1,8 @@
+# Real-time Collaborative Note-Taking App - Server
+
+This repository contains the backend server for a real-time collaborative note-taking application. It handles user authentication, note board management, real-time collaboration via WebSockets, and provides advanced semantic search capabilities for efficient information retrieval.
+
+
 ## Setup
 
 1. `npm install`
@@ -5,6 +10,16 @@
    `docker compose up -d`, `docker compose down`,
    or use an existing one
 3. Setup `.env` file based on `.env.example` files.
+
+## Migrations
+
+```bash
+# prepare a migration
+npm run migrate:new myMigrationName
+
+# migrate up to the latest migration
+npm run migrate:latest
+```
 
 ## Running the project in development
 
@@ -18,16 +33,6 @@ npm run dev
 ```bash
 # back end tests
 npm test
-```
-
-## Migrations
-
-```bash
-# prepare a migration
-npm run migrate:new myMigrationName
-
-# migrate up to the latest migration
-npm run migrate:latest
 ```
 
 ## Running the server in production

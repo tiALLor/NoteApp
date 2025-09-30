@@ -133,7 +133,7 @@ describe('updateNoteBoardTitle', () => {
     expect(noteBoardInDatabase.title).toEqual(record.title)
   })
 
-  it('should throw a error if note do not exist', async () => {
+  it('should throw a error if noteBoard do not exist', async () => {
     const record = {
       id: 999999,
       title: random.string(),
@@ -171,6 +171,30 @@ describe('deleteNoteBoardById', () => {
 })
 
 // ===========================================
+// GET NOTE BOARD BY boardID (with Owner Name)
+// ===========================================
+describe('get noteBoard by boardId with userName', () => {
+  it('should return noteBoard by boardId with user name', async () => {
+    // arrange
+    const noteBoard = await repository.createNoteBoard(testNoteBoard)
+
+    const result = await repository.getNoteBoardByBoardIdWithUser(noteBoard.id)
+
+    expect(result).toEqual({
+      ...testNoteBoardPublic,
+      ownerUserName: testUser.userName,
+    })
+  })
+
+  it('should throw a error if noteBoard do not exist', async () => {
+
+    await expect(repository.getNoteBoardByBoardIdWithUser(9999)).rejects.toThrow(
+      /Not Found/i
+    )
+  })
+})
+
+// ===========================================
 // GET NOTE BOARDS BY ownerID (with Owner Name)
 // ===========================================
 describe('get noteBoards by ownerId with userName', () => {
@@ -178,7 +202,7 @@ describe('get noteBoards by ownerId with userName', () => {
     // arrange
     await repository.createNoteBoard(testNoteBoard)
 
-    const result = await repository.getNoteBoardsByOwnerIdWithUser(testUser.id)
+    const result = await repository.getNoteBoardsByUserIdWithUser(testUser.id)
 
     expect(result).toHaveLength(1)
     expect(result).toEqual([
@@ -201,7 +225,7 @@ describe('get noteBoards by ownerId with userName', () => {
       fakeNoteBoard({ ownerId: testUser2.id })
     )
 
-    const result = await repository.getNoteBoardsByOwnerIdWithUser(testUser.id)
+    const result = await repository.getNoteBoardsByUserIdWithUser(testUser.id)
 
     expect(result).toHaveLength(2)
     expect(result.map((board) => board.id)).toEqual(
@@ -210,7 +234,7 @@ describe('get noteBoards by ownerId with userName', () => {
   })
 
   it('should return [] if no notes exist', async () => {
-    const result = await repository.getNoteBoardsByOwnerIdWithUser(testUser.id)
+    const result = await repository.getNoteBoardsByUserIdWithUser(testUser.id)
 
     expect(result).toHaveLength(0)
     expect(result).toEqual([])

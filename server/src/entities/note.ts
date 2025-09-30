@@ -67,3 +67,13 @@ export type NotePublic = z.infer<typeof notePublicSchema>
 export const noteKeyPublic = Object.keys(
   notePublicSchema.shape
 ) as (keyof NotePublic)[]
+
+// ===========================================
+// semantic search in notes
+// ===========================================
+
+export const noteSemanticSearchSchema = z.object({
+  query: z.string().trim().min(1),
+})
+
+export type NoteSemanticSearch = z.infer<typeof noteSemanticSearchSchema>

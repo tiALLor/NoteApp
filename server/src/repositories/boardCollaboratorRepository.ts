@@ -4,6 +4,7 @@ import {
   boardCollaboratorKeyPublic,
   type BoardCollaboratorInsertable,
   type BoardCollaboratorPublic,
+  type BoardCollaboratorPublicWithUser,
 } from '../entities/boardCollaborator'
 
 export function boardCollaboratorRepository(db: Database) {
@@ -37,18 +38,22 @@ export function boardCollaboratorRepository(db: Database) {
       return result
     },
 
-    async getCollaboratorByBoardId(boardId: number): Promise<any[]> {
+    async getCollaboratorByBoardId(
+      boardId: number
+    ): Promise<BoardCollaboratorPublicWithUser[]> {
       return db
         .selectFrom('boardCollaborator')
         .innerJoin('user', 'boardCollaborator.userId', 'user.id')
         .where('boardId', '=', boardId)
         .select([
           ...prefixTable('boardCollaborator', boardCollaboratorKeyPublic),
-          'user.userName as collaboratorUserName ',
+          'user.userName as collaboratorUserName',
         ])
         .execute()
     },
   }
 }
 
-export type NoteRepository = ReturnType<typeof boardCollaboratorRepository>
+export type BoardCollaboratorRepository = ReturnType<
+  typeof boardCollaboratorRepository
+>

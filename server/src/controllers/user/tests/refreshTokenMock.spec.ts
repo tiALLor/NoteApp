@@ -39,7 +39,7 @@ it('should return a if a valid refresh token is provided', async () => {
     db,
     authService: fakeAuthService,
     req: {
-      header: () => `Bearer ${VALID_TOKEN}`,
+      headers: { authorization: `Bearer ${VALID_TOKEN}`},
       cookies: { refreshToken: VALID_REFRESH_TOKEN },
     } as any,
     res: mockRes as any,
@@ -60,7 +60,7 @@ it('should throw an error if invalid refresh token', async () => {
     db,
     authService: fakeAuthService,
     req: {
-      header: () => `Bearer ${VALID_TOKEN}`,
+      headers: { authorization: `Bearer ${VALID_TOKEN}`},
       cookies: { refreshToken: 'someRefreshToken' },
     } as any,
     res: mockRes as any,
@@ -77,7 +77,7 @@ it('should throw an error if no refresh token', async () => {
     db,
     authService: fakeAuthService,
     req: {
-      header: () => `Bearer ${VALID_TOKEN}`,
+      headers: { authorization: `Bearer ${VALID_TOKEN}`},
     } as any,
     res: mockRes as any,
   })

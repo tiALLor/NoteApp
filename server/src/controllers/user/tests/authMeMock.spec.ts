@@ -37,7 +37,7 @@ it('should return user with a valid token', async () => {
       db,
       authService: fakeAuthService,
       req: {
-        header: () => `Bearer ${VALID_TOKEN}`,
+        headers: { authorization: `Bearer ${VALID_TOKEN}` },
       } as any,
     })
   )
@@ -58,7 +58,7 @@ it('should throw UNAUTHORIZED for invalid token', async () => {
       db,
       authService: fakeAuthService,
       req: {
-        header: () => `Bearer wrong-token`,
+        headers: { authorization: `Bearer wrong-token` },
       } as any,
     })
   )
@@ -72,7 +72,7 @@ it('should throw UNAUTHORIZED for invalid token', async () => {
       db,
       authService: fakeAuthService,
       req: {
-        header: () => `Bearer wrong-token`,
+        headers: { authorization: `Bearer wrong-token` },
       } as any,
     })
   )

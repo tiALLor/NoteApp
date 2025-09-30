@@ -6,7 +6,7 @@ export const requestContext = (
   context: Partial<Context> & ContextMinimal
 ): Context => ({
   req: {
-    header: () => undefined,
+    headers: () => undefined,
     get: () => undefined,
   } as any,
   res: {

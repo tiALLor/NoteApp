@@ -20,12 +20,14 @@ export type Context = {
   res?: Response
 
   // We can also add our own custom context properties.
-  authUser?: UserPublic
+  authUser?: UserPublic | null
 
   // For providing repos in a slightly easier to test way
   repos?: Partial<Repositories>
   authService?: AuthService
 }
+// TODO: erase if not needed leave only context
+// export type Context = HTTPContext | WSContext
 
 export type ContextMinimal = Pick<Context, 'db'>
 

@@ -10,6 +10,7 @@ const routes = router({
 const createCaller = createCallerFactory(routes)
 
 const VALID_TOKEN = 'valid-token'
+const INVALID_TOKEN = 'invalid-token'
 
 // we do not need a database for this test
 const db = {} as any
@@ -33,7 +34,7 @@ it('should pass if user provides a valid token', async () => {
     db,
     authService: fakeAuthService,
     req: {
-      header: () => `Bearer ${VALID_TOKEN}`,
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
     } as any,
   })
 
@@ -68,7 +69,7 @@ it('should throw an error if user provides invalid token', async () => {
       db,
       authService: fakeAuthService,
       req: {
-        header: () => 'Bearer invalid-token',
+        headers: { authorization: `Bearer ${INVALID_TOKEN}` },
       } as any,
     })
   )

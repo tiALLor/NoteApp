@@ -56,10 +56,43 @@ export function noteBoardRepository(db: Database) {
       return { ...result, createdAt: result.createdAt.toISOString() }
     },
 
-    async getNoteBoardsByOwnerIdWithUser(
+    async getNoteBoardByBoardIdWithUser(
+      boardId: number
+    ): Promise<NoteBoardPublicWithUser> {
+      const result = await db
+        .selectFrom('noteBoard')
+        .innerJoin('user', 'noteBoard.ownerId', 'user.id')
+        .leftJoin(
+          'boardCollaborator',
+          'boardCollaborator.boardId',
+          'noteBoard.id'
+        )
+        .where('noteBoard.id', '=', boardId)
+        .select([
+          ...prefixTable('noteBoard', noteBoardKeyPublic),
+          'user.userName as ownerUserName',
+          'noteBoard.createdAt',
+        ])
+        .executeTakeFirst()
+      if (!result) throw new Error('NoteBoard Not Found')
+
+      let createdAt: string
+
+      if (result.createdAt instanceof Date) {
+        createdAt = result.createdAt.toISOString()
+      } else if (typeof result.createdAt === 'string') {
+        createdAt = result.createdAt
+      } else {
+        throw new Error('Unsupported createdAt format')
+      }
+
+      return { ...result, createdAt }
+    },
+
+    async getNoteBoardsByUserIdWithUser(
       userId: number
     ): Promise<NoteBoardPublicWithUser[]> {
-      const result = await db
+      const results = await db
         .selectFrom('noteBoard')
         .innerJoin('user', 'noteBoard.ownerId', 'user.id')
         .leftJoin(
@@ -80,7 +113,7 @@ export function noteBoardRepository(db: Database) {
         ])
         .execute()
 
-      return result.map((row) => {
+      return results.map((row) => {
         let createdAt: string
 
         if (row.createdAt instanceof Date) {
@@ -96,4 +129,4 @@ export function noteBoardRepository(db: Database) {
   }
 }
 
-export type NoteRepository = ReturnType<typeof noteBoardRepository>
+export type NoteBoardRepository = ReturnType<typeof noteBoardRepository>

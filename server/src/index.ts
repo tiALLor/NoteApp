@@ -1,7 +1,10 @@
+import http from 'node:http'
+import { NoteWebSocketServer } from '@server/websocketServer/webSocketServer'
 import createApp from './app'
 import { createDatabase } from './database'
 import config from './config'
 import logger from './utils/logger'
+
 
 const database = createDatabase(config.database)
 
@@ -15,7 +18,12 @@ try {
 
 const app = createApp(database)
 
-app.listen(config.port, () => {
+const httpServer = http.createServer(app)
+
+// eslint-disable-next-line no-new
+new NoteWebSocketServer(httpServer, database)
+
+httpServer.listen(config.port, () => {
   // eslint-disable-next-line no-console
   logger.info(`Server is running at http://localhost:${config.port}`)
 })

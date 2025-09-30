@@ -7,6 +7,7 @@ export const authenticatedProcedure = publicProcedure.use(
     if (ctx.authUser) {
       return next({
         ctx: {
+          ...ctx,
           authUser: ctx.authUser,
         },
       })
@@ -24,9 +25,12 @@ export const authenticatedProcedure = publicProcedure.use(
       })
     }
 
-    // if we do not have an authenticated user, we will try to authenticate
-    const token = ctx.req.header('Authorization')?.replace('Bearer ', '')
+    let token: string | undefined
 
+    const authHeader = ctx.req.headers
+    if (authHeader?.authorization?.startsWith('Bearer ')) {
+      ;[, token] = authHeader.authorization.split(' ')
+    }
 
     // if there is no token, we will throw an error
     if (!token) {

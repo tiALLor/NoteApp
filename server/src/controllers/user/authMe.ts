@@ -21,7 +21,12 @@ export default authenticatedProcedure
       })
     }
     // we will try to authenticate
-    const token = ctx.req.header('Authorization')?.replace('Bearer ', '')
+    let token: string | undefined
+
+    const authHeader = ctx.req.headers
+    if (authHeader?.authorization?.startsWith('Bearer ')) {
+      ;[, token] = authHeader.authorization.split(' ')
+    }
 
     // if there is no token, we will throw an error
     if (!token) {

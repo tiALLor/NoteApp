@@ -1,5 +1,6 @@
 import type { Database } from '@server/database'
-import { toSql } from 'pgvector/kysely'
+import { cosineDistance, toSql } from 'pgvector/kysely'
+import { prefixTable } from '../utils/strings'
 import {
   noteKeyPublic,
   type NoteInsertable,
@@ -105,6 +106,54 @@ export function noteRepository(db: Database) {
       if (!result) throw new Error('Note Not Found')
 
       return { ...result, createdAt: result.createdAt.toISOString() }
+    },
+
+    async semanticSearch(
+      userId: number,
+      embedding: number[],
+      options: {
+        limit?: number
+        threshold?: number
+      }
+    ): Promise<(NotePublic & { similarity: number })[]> {
+      const { limit = 10, threshold = 0.5 } = options
+      const similarity = cosineDistance('contentEmbedding', embedding)
+
+      const results = await db
+        .selectFrom('note')
+        .innerJoin('noteBoard', 'noteBoard.id', 'note.boardId')
+        .leftJoin(
+          'boardCollaborator',
+          'note.boardId',
+          'boardCollaborator.boardId'
+        )
+        .select([
+          ...prefixTable('note', noteKeyPublic),
+          similarity.as('similarity'),
+        ])
+        .where(similarity, '<', threshold)
+        .where((eb) =>
+          eb.or([
+            eb('noteBoard.ownerId', '=', userId),
+            eb('boardCollaborator.userId', '=', userId),
+          ])
+        )
+        .orderBy(similarity)
+        .limit(limit)
+        .execute()
+
+      return results.map((row) => {
+        let createdAt: string
+
+        if (row.createdAt instanceof Date) {
+          createdAt = row.createdAt.toISOString()
+        } else if (typeof row.createdAt === 'string') {
+          createdAt = row.createdAt
+        } else {
+          throw new Error('Unsupported createdAt format')
+        }
+        return { ...row, createdAt, similarity: row.similarity as number }
+      })
     },
   }
 }

@@ -34,8 +34,13 @@ type WSConnection = {
   username: string
 }
 
-type Message =
+export type WsMessage =
+  | {
+      type: 'connected'
+      data: { connectionId: string; user: { id: number; username: string } }
+    }
   | { type: 'get_all_boards' }
+  | { type: 'receive_all_boards'; data: NoteBoardWithNoteAndCollaborators[] }
   | { type: 'get_all_users'; data: UserPublic[] }
   | {
       type: 'semantic_search'
@@ -45,8 +50,7 @@ type Message =
       type: 'semantic_search_result'
       data: (NotePublic & { similarity: number })[]
     }
-  | { type: 'receive_all_boards'; data: NoteBoardWithNoteAndCollaborators[] }
-  | { type: 'new_note'; data: NoteInsertable }
+  | { type: 'new_note'; data: NoteInsertable | NotePublic }
   | {
       type: 'update_note'
       data:
@@ -58,7 +62,6 @@ type Message =
       type: 'delete_note'
       data: { noteId: number; boardId: number } | NotePublic
     }
-  | { type: 'get_board_notes'; data: { noteBoarId: number } }
   | { type: 'new_note_board'; data: NoteBoardInsertable }
   | { type: 'update_note_board'; data: NoteBoardUpdateable }
   | { type: 'updated_note_board'; data: NoteBoardPublic }
@@ -68,11 +71,15 @@ type Message =
     }
   | {
       type: 'add_collaborator'
-      data: BoardCollaboratorInsertable | NoteBoardPublic
+      data: BoardCollaboratorInsertable
     }
   | {
       type: 'remove_collaborator'
-      data: BoardCollaboratorInsertable | NoteBoardPublic
+      data: BoardCollaboratorInsertable
+    }
+  | {
+      type: 'updated_collaborator'
+      data: NoteBoardWithNoteAndCollaborators
     }
   | { type: 'error'; data: { message: string } }
 
@@ -162,8 +169,7 @@ export class NoteWebSocketServer {
     ws.send(
       JSON.stringify({
         type: 'connected',
-        connectionId,
-        user: { id: user.id, username: user.userName },
+        data: { connectionId, user: { id: user.id, username: user.userName } },
       })
     )
   }
@@ -249,7 +255,7 @@ export class NoteWebSocketServer {
     try {
       const responseData = await this.noteService.getAllUserBoards(userId)
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'receive_all_boards',
         data: responseData,
       }
@@ -269,7 +275,7 @@ export class NoteWebSocketServer {
   }
 
   // ===========================================
-  // get all users for collaborators
+  // get all users for user as collaborators
   // ===========================================
   private async handleGetAllUsers(connectionId: string): Promise<void> {
     const connection = this.connections.get(connectionId)
@@ -279,7 +285,7 @@ export class NoteWebSocketServer {
     try {
       const responseData = await this.userRepo.getUserAll()
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'get_all_users',
         data: responseData,
       }
@@ -316,7 +322,7 @@ export class NoteWebSocketServer {
     try {
       const responseData = await this.noteService.semanticSearch(userId, data)
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'semantic_search_result',
         data: responseData,
       }
@@ -352,8 +358,8 @@ export class NoteWebSocketServer {
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
-      const message: Message = {
-        type: 'updated_note',
+      const message: WsMessage = {
+        type: 'new_note',
         data: responseData,
       }
 
@@ -408,7 +414,7 @@ export class NoteWebSocketServer {
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'updated_note',
         data: responseData,
       }
@@ -442,7 +448,7 @@ export class NoteWebSocketServer {
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'delete_note',
         data: responseData,
       }
@@ -473,7 +479,7 @@ export class NoteWebSocketServer {
     try {
       const responseData = await this.noteService.createNoteBoard(data)
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'updated_note_board',
         data: responseData,
       }
@@ -508,7 +514,7 @@ export class NoteWebSocketServer {
         this.getConnectionsByNoteBoardId(data.id),
       ])
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'updated_note_board',
         data: responseData,
       }
@@ -542,7 +548,7 @@ export class NoteWebSocketServer {
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
-      const message: Message = {
+      const message: WsMessage = {
         type: 'delete_note_board',
         data: responseData,
       }
@@ -571,19 +577,16 @@ export class NoteWebSocketServer {
     if (!connection || !userId) return
 
     try {
-      const updatedBoard: NoteBoardPublic =
+      const updatedNoteBoard: NoteBoardWithNoteAndCollaborators =
         await this.noteService.addCollaborator(userId, data)
-      if (!updatedBoard) {
-        throw new Error('Failed to create new collaborator')
-      }
 
       const recipientsConnIds = await this.getConnectionsByNoteBoardId(
-        updatedBoard.id
+        data.boardId
       )
 
-      const message: Message = {
-        type: 'add_collaborator',
-        data: updatedBoard,
+      const message: WsMessage = {
+        type: 'updated_collaborator',
+        data: updatedNoteBoard,
       }
 
       // Broadcast change to other collaborators
@@ -610,19 +613,16 @@ export class NoteWebSocketServer {
     if (!connection || !userId) return
 
     try {
-      const updatedBoard: NoteBoardPublic =
+      const updatedNoteBoard: NoteBoardWithNoteAndCollaborators =
         await this.noteService.removeCollaborator(userId, data)
-      if (!updatedBoard) {
-        throw new Error('Failed to remove collaborator from note board')
-      }
 
       const recipientsConnIds = await this.getConnectionsByNoteBoardId(
-        updatedBoard.id
+        data.boardId
       )
 
-      const message: Message = {
-        type: 'remove_collaborator',
-        data: updatedBoard,
+      const message: WsMessage = {
+        type: 'updated_collaborator',
+        data: updatedNoteBoard,
       }
 
       // Broadcast change to other collaborators
@@ -642,7 +642,7 @@ export class NoteWebSocketServer {
   // ===========================================
   private broadCastMessage(
     recipientsConnIds: string[],
-    message: Message
+    message: WsMessage
   ): void {
     const messageStr = JSON.stringify(message)
 

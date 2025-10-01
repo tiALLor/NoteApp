@@ -26,4 +26,5 @@ new NoteWebSocketServer(httpServer, database)
 httpServer.listen(config.port, () => {
   // eslint-disable-next-line no-console
   logger.info(`Server is running at http://localhost:${config.port}`)
+  console.log(`WebSocket endpoint: ws://localhost:${config.port}`);
 })

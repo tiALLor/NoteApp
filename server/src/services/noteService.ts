@@ -15,6 +15,7 @@ import {
 import {
   boardCollaboratorInsertableSchema,
   type BoardCollaboratorInsertable,
+  type BoardCollaboratorPublic,
   type BoardCollaboratorPublicWithUser,
 } from '@server/entities/boardCollaborator'
 import {
@@ -260,11 +261,12 @@ export class NoteService {
   async addCollaborator(
     userId: number,
     data: BoardCollaboratorInsertable
-  ): Promise<NoteBoardPublic> {
+  ): Promise<NoteBoardWithNoteAndCollaborators> {
     let parsedData: BoardCollaboratorInsertable
 
+    let noteBoard: NoteBoardPublicWithUser
     try {
-      const noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
+      noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
         data.boardId
       )
       if (noteBoard.ownerId !== userId) {
@@ -276,15 +278,28 @@ export class NoteService {
       throw error
     }
 
-    const addedCollaborator =
-      await this.boardCollaboratorRepo.addCollaborator(parsedData)
+    let addedCollaborator: BoardCollaboratorPublic
+    try {
+      addedCollaborator =
+        await this.boardCollaboratorRepo.addCollaborator(parsedData)
+    } catch (error) {
+      logger.error(`collaborator was not added: ${error}`)
+      throw error
+    }
 
-    const updatedNoteBoard =
-      await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
+    const notes = await this.noteRepo.getNotesByNoteBoardId(
+      addedCollaborator.boardId
+    )
+    const collaborators =
+      await this.boardCollaboratorRepo.getCollaboratorByBoardId(
         addedCollaborator.boardId
       )
 
-    return updatedNoteBoard
+    return {
+      ...noteBoard,
+      notes,
+      collaborators,
+    }
   }
 
   // ===========================================
@@ -293,11 +308,12 @@ export class NoteService {
   async removeCollaborator(
     userId: number,
     data: BoardCollaboratorInsertable
-  ): Promise<NoteBoardPublic> {
+  ): Promise<NoteBoardWithNoteAndCollaborators> {
     let parsedData: BoardCollaboratorInsertable
 
+    let noteBoard: NoteBoardPublicWithUser
     try {
-      const noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
+      noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
         data.boardId
       )
       if (noteBoard.ownerId !== userId) {
@@ -309,15 +325,29 @@ export class NoteService {
       throw error
     }
 
-    const removedCollaborator =
-      await this.boardCollaboratorRepo.removeCollaborator(parsedData)
+    let removedCollaborator: BoardCollaboratorPublic
+    try {
+      removedCollaborator =
+        await this.boardCollaboratorRepo.removeCollaborator(parsedData)
+    } catch (error) {
+      logger.error(`collaborator was not removed: ${error}`)
+      throw error
+    }
 
-    const updatedNoteBoard =
-      await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
+    const notes = await this.noteRepo.getNotesByNoteBoardId(
+      removedCollaborator.boardId
+    )
+
+    const collaborators =
+      await this.boardCollaboratorRepo.getCollaboratorByBoardId(
         removedCollaborator.boardId
       )
 
-    return updatedNoteBoard
+    return {
+      ...noteBoard,
+      notes,
+      collaborators,
+    }
   }
 
   // ===========================================

@@ -18,7 +18,7 @@ export const noteSchema = z.object({
   isDone: z.boolean().default(false),
 })
 
-export const userKeyAll = Object.keys(noteSchema.shape) as (keyof Note)[]
+export const noteKeyAll = Object.keys(noteSchema.shape) as (keyof Note)[]
 
 // ===========================================
 // insertable

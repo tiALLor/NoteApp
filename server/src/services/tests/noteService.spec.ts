@@ -208,7 +208,8 @@ describe('NoteService', () => {
       mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockReturnValueOnce({
         ownerId: 1,
       })
-      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockReturnValueOnce(
+      mockNoteRepo.getNotesByNoteBoardId.mockResolvedValue(['notes'])
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue(
         collab
       )
 
@@ -217,7 +218,11 @@ describe('NoteService', () => {
         boardId: 5,
       })
 
-      expect(result).toEqual(collab)
+      expect(result).toEqual({
+        ownerId: 1,
+        notes: ['notes'],
+        collaborators: collab,
+      })
       expect(mockBoardCollaboratorRepo.addCollaborator).toHaveBeenCalledWith({
         userId: 10,
         boardId: 5,
@@ -228,12 +233,20 @@ describe('NoteService', () => {
   describe('removeCollaborator', () => {
     test('removes collaborator successfully', async () => {
       const collab = { id: 2, userId: 11, boardId: 6 }
+      const updatedCollaborators = [
+        {
+          boardId: 10,
+          userId: 101,
+          collaboratorUserName: 'john',
+        },
+      ] as any
       mockBoardCollaboratorRepo.removeCollaborator.mockResolvedValue(collab)
+      mockNoteRepo.getNotesByNoteBoardId.mockResolvedValue(['notes'])
       mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockReturnValueOnce({
         ownerId: 1,
       })
-      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockReturnValueOnce(
-        collab
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue(
+        updatedCollaborators
       )
 
       const result = await service.removeCollaborator(1, {
@@ -241,7 +254,11 @@ describe('NoteService', () => {
         boardId: 6,
       })
 
-      expect(result).toEqual(collab)
+      expect(result).toEqual({
+        ownerId: 1,
+        notes: ['notes'],
+        collaborators: updatedCollaborators,
+      })
       expect(mockBoardCollaboratorRepo.removeCollaborator).toHaveBeenCalledWith(
         {
           userId: 11,

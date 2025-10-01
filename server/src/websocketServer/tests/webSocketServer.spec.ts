@@ -161,8 +161,10 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'connected',
-          connectionId: CONNECTION_ID,
-          user: { id: mockUserId, username: mockUser.userName },
+          data: {
+            connectionId: CONNECTION_ID,
+            user: { id: mockUserId, username: mockUser.userName },
+          },
         })
       )
     })
@@ -303,15 +305,16 @@ describe('NoteWebSocketServer', () => {
     test('adds collaborator and broadcasts updated board', async () => {
       const server = createConnectedServer(mockWs)
       const payload = { boardId: 10, userId: 202 } as any
-      const updatedBoard = {
-        id: 10,
-        title: 'B',
-        ownerId: 101,
-        collaborators: [payload],
-      } as any
+      const updatedCollaborators = [
+        {
+          boardId: 10,
+          userId: 101,
+          collaboratorUserName: 'john',
+        },
+      ] as any
       const recipients = ['c1', 'c2', 'conn-202']
 
-      mockNoteService.addCollaborator.mockResolvedValue(updatedBoard)
+      mockNoteService.addCollaborator.mockResolvedValue(updatedCollaborators)
       // @ts-ignore
       server.getConnectionsByNoteBoardId = vi.fn().mockResolvedValue(recipients)
       // @ts-ignore
@@ -326,8 +329,8 @@ describe('NoteWebSocketServer', () => {
       )
       // @ts-ignore
       expect(server.broadCastMessage).toHaveBeenCalledWith(recipients, {
-        type: 'add_collaborator',
-        data: updatedBoard,
+        type: 'updated_collaborator',
+        data: updatedCollaborators,
       })
     })
   })
@@ -648,11 +651,13 @@ describe('NoteWebSocketServer', () => {
       boardId: mockBoardId,
       userId: mockCollaboratorId,
     } as any
-    const mockUpdatedBoard = {
-      id: mockBoardId,
-      title: 'Project X',
-      collaborators: [],
-    } as any
+    const mockupdatedCollaborators = [
+      {
+        boarId: mockBoardId,
+        userId: 'Project X',
+        collaboratorUserName: 'John',
+      },
+    ] as any
     const mockRecipients = ['conn-owner-1', 'conn-collab-2'] // Remaining connections
 
     beforeEach(() => {
@@ -669,7 +674,9 @@ describe('NoteWebSocketServer', () => {
     })
 
     test('should call removeCollaborator and broadcast the updated board', async () => {
-      mockNoteService.removeCollaborator.mockResolvedValue(mockUpdatedBoard)
+      mockNoteService.removeCollaborator.mockResolvedValue(
+        mockupdatedCollaborators
+      )
 
       // @ts-ignore: Accessing private method for unit test
       await server.handleRemoveCollaborator(CONNECTION_ID, mockRemoveData)
@@ -688,8 +695,8 @@ describe('NoteWebSocketServer', () => {
       // Verify broadcast
       // @ts-ignore
       expect(server.broadCastMessage).toHaveBeenCalledWith(mockRecipients, {
-        type: 'remove_collaborator',
-        data: mockUpdatedBoard,
+        type: 'updated_collaborator',
+        data: mockupdatedCollaborators,
       })
       expect(mockWs.send).not.toHaveBeenCalled() // No error message should be sent
     })
@@ -717,7 +724,7 @@ describe('NoteWebSocketServer', () => {
     })
 
     test('should send error if service returns falsy value (should not happen based on service code)', async () => {
-      mockNoteService.removeCollaborator.mockResolvedValue(null) // Simulate an unexpected null/falsy return
+      mockNoteService.removeCollaborator.mockRejectedValue('error')
 
       // @ts-ignore: Accessing private method for unit test
       await server.handleRemoveCollaborator(CONNECTION_ID, mockRemoveData)
@@ -751,6 +758,7 @@ describe('NoteWebSocketServer', () => {
       expect(server.broadCastMessage).not.toHaveBeenCalled()
     })
   })
+
   describe('Utility Methods', () => {
     let server: NoteWebSocketServer
     const mockWsOpen = makeMockWs()

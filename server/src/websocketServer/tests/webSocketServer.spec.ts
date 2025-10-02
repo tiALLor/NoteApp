@@ -220,7 +220,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockNoteService.createNote).toHaveBeenCalledWith(payload)
       // @ts-ignore
       expect(server.broadCastMessage).toHaveBeenCalledWith(recipients, {
-        type: 'updated_note',
+        type: 'new_note',
         data: note,
       })
     })
@@ -294,7 +294,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalled()
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
-          type: 'updated_note_board',
+          type: 'new_note_board',
           data: board,
         })
       )

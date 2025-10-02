@@ -4,20 +4,41 @@ import type { WsMessage } from '@server/shared/types'
 
 type MessageHandler = (data: any, connectionId?: string) => void
 
+type QueuedMessage = {
+  type: WsMessage['type']
+  data?: any
+}
+
 export class NoteWebSocketService {
   ws: WebSocket | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
+  private messageQueue: QueuedMessage[] = []
   private pingInterval: number | null = null
   // Store message handlers
   private eventListeners: Map<string, MessageHandler[]> = new Map()
 
-  public isConnected: Ref<boolean> = ref(false)
+  isConnectedRef = ref(false)
+
+  public getIsConnected() {
+    return this.isConnectedRef
+  }
+
+  set_IsConnected(status: boolean) {
+    try {
+      // @ts-ignores-
+      this.isConnectedRef = status
+      console.log(this.isConnectedRef)
+    } catch (err) {
+      console.log(err)
+      console.log(this.isConnectedRef)
+    }
+  }
 
   constructor(private getAccessToken: () => string | null) {}
 
-  connect() {
+  public connect() {
     // Prevent connecting if already connected or in connecting state
     if (
       this.ws &&
@@ -49,9 +70,10 @@ export class NoteWebSocketService {
 
     this.ws.onopen = () => {
       console.log('WebSocket connected')
-      this.isConnected.value = true
+      this.set_IsConnected(true)
       this.reconnectAttempts = 0
       this.startPing()
+      this.flushQueue()
       // TODO : Remove or use Emit internal event for connection success
       this.emit('connected_internal')
     }
@@ -67,7 +89,7 @@ export class NoteWebSocketService {
 
     this.ws.onclose = (event) => {
       console.log('WebSocket disconnected:', event.code)
-      this.isConnected.value = false
+      this.set_IsConnected(false)
       this.stopPing()
 
       if (
@@ -99,12 +121,13 @@ export class NoteWebSocketService {
   // handle message
   // ===========================================
   sendMessage(type: WsMessage['type'], data?: any) {
+    const message: QueuedMessage = { type, data }
+
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type, data }))
     } else {
-      console.warn('WebSocket not open. Message not sent:', { type, data })
-      // TODO: queue messages or throw an error
-      throw new Error(`WebSocket not open. Message not sent: { ${type}, ${data} }`)
+      console.warn(`WebSocket closed. Queueing message: ${type}`)
+      this.messageQueue.push(message)
     }
   }
 
@@ -168,7 +191,26 @@ export class NoteWebSocketService {
     }
   }
 
-  private scheduleReconnect() {
+  private flushQueue() {
+    if (this.messageQueue.length === 0) {
+      return
+    }
+
+    console.log(`Flushing ${this.messageQueue.length} queued messages...`)
+
+    while (this.messageQueue.length > 0) {
+      const message = this.messageQueue.shift()
+
+      if (message && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(message))
+      } else {
+        console.error('Connection dropped during queue flush. Remaining messages re-queued.')
+        break
+      }
+    }
+  }
+
+  public scheduleReconnect() {
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
     console.log(`Scheduling WebSocket reconnect in ${delay}ms...`)
 
@@ -184,6 +226,6 @@ export class NoteWebSocketService {
       this.ws.close(1000, 'Manual disconnect')
       this.ws = null
     }
-    this.isConnected.value = false
+    this.set_IsConnected(false)
   }
 }

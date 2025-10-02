@@ -22,32 +22,53 @@ import type {
 // ===============================================
 
 export const useNoteStore = defineStore('noteStore', () => {
-  const authStore = useUserAuthStore()
+  const userAuthStore = useUserAuthStore()
   const allUsers = ref<UserPublic[] | null>(null)
-  const noteBoards = ref<NoteBoardWithNoteAndCollaborators[] | null>(null)
+  const noteBoardsData = ref<NoteBoardWithNoteAndCollaborators[] | null>(null)
   const searchResults = ref<(NotePublic & { similarity: number })[] | null>(null)
 
   const connectionId = ref<string | null>(null)
   const storeUser = ref<UserPublic | null>(null)
   const error = ref<string | null>(null)
 
-  const noteBoardIds = computed<number[]>(() =>
-    noteBoards.value ? noteBoards.value.map((noteBoard) => noteBoard.id) : []
-  )
+  // const noteBoardIds = computed<number[]>(() =>
+  //   noteBoardsData.value ? noteBoardsData.value.map((noteBoard) => noteBoard.id) : []
+  // )
 
   const { ws, isConnected } = useWebSocketService()
+
+  if (!ws) {
+    console.log('no ws')
+  }
+
+  const connectToWebSocket = () => {
+    // @ ts-ignore
+    if (!isConnected.value) {
+      console.log('Attempting reconnection. Current status:', isConnected.value)
+      try {
+        ws.value!.connect()
+      } catch (err) {
+        console.warn('Connection failed: ', err)
+        ;((error.value = 'Connection failed: '), err)
+      }
+    } else {
+      console.log('Already connected. Skipping connection attempt.')
+    }
+    console.log('Current status:', isConnected.value)
+  }
 
   // ===============================================
   // Getters
   // ===============================================
 
-  const getBoardById = (boardId: number) => noteBoards.value?.find((board) => board.id === boardId)
+  const getBoardById = (boardId: number) =>
+    noteBoardsData.value?.find((board) => board.id === boardId)
 
   // ===============================================
   // WebSocket Listeners
   // ===============================================
   const handleServerConnected = (data: { connectionId: string; user: UserPublic }) => {
-    if (authStore.authUser?.id === data.user.id) {
+    if (userAuthStore.authUser?.id.toString !== data.user.id.toString) {
       console.log(`Connection on ws: Returned user id do not match authUser`)
       return
     }
@@ -64,7 +85,7 @@ export const useNoteStore = defineStore('noteStore', () => {
   }
 
   const handleReceiveAllBoards = (data: NoteBoardWithNoteAndCollaborators[]) => {
-    noteBoards.value = data
+    noteBoardsData.value = data
   }
 
   const handleReceiveAllUsers = (data: UserPublic[]) => {
@@ -101,44 +122,54 @@ export const useNoteStore = defineStore('noteStore', () => {
     }
   }
 
-  const handleNoteBoardUpdate = (data: NoteBoardPublic) => {
-    if (!noteBoards.value) return
+  const handleNewNoteBoard = (data: NoteBoardWithNoteAndCollaborators) => {
+    if (!noteBoardsData.value) {
+      noteBoardsData.value = [data]
+    } else {
+      if (!noteBoardsData.value.some((board) => board.id === data.id)) {
+        noteBoardsData.value.push(data)
+      }
+    }
+  }
 
-    const index = noteBoards.value.findIndex((noteBoard) => noteBoard.id === data.id)
+  const handleNoteBoardUpdate = (data: NoteBoardPublic) => {
+    if (!noteBoardsData.value) return
+
+    const index = noteBoardsData.value.findIndex((noteBoard) => noteBoard.id === data.id)
     if (index === -1) {
       throw new Error(`BoardId ${data.id} was not found in store`)
     }
 
-    const board = noteBoards.value[index]
-    noteBoards.value[index] = {
+    const board = noteBoardsData.value[index]
+    noteBoardsData.value[index] = {
       ...board,
       title: data.title,
     }
   }
 
   const handleDeleteNoteBoard = (data: NoteBoardPublic) => {
-    if (!noteBoards.value) return
+    if (!noteBoardsData.value) return
 
-    const index = noteBoards.value.findIndex((noteBoard) => noteBoard.id === data.id)
+    const index = noteBoardsData.value.findIndex((noteBoard) => noteBoard.id === data.id)
     if (index !== -1) {
       // Use splice for array reactivity and not delete
-      noteBoards.value.splice(index, 1)
+      noteBoardsData.value.splice(index, 1)
     }
   }
   const handleAddCollaborator = (data: NoteBoardWithNoteAndCollaborators) => {
-    if (!noteBoards.value) {
-      noteBoards.value = [data] // First board added
+    if (!noteBoardsData.value) {
+      noteBoardsData.value = [data] // First board added
       return
     }
 
-    const index = noteBoards.value.findIndex((noteBoard) => noteBoard.id === data.id)
+    const index = noteBoardsData.value.findIndex((noteBoard) => noteBoard.id === data.id)
 
     if (index !== -1) {
       // Update existing board (collaborator list changed)
-      noteBoards.value[index] = data
+      noteBoardsData.value[index] = data
     } else {
       // User was added to a new board (add the board to the array)
-      noteBoards.value.push(data)
+      noteBoardsData.value.push(data)
     }
   }
 
@@ -148,12 +179,20 @@ export const useNoteStore = defineStore('noteStore', () => {
   }
 
   const handleAuthError = () => {
-    authStore.refreshToken()
+    userAuthStore.refreshToken()
   }
 
   // ===============================================
   // Send messages to Server
   // ===============================================
+  const sendGetAllBoards = () => {
+    ws.value?.sendMessage('get_all_boards')
+  }
+
+  const sendGetAllUsers = () => {
+    ws.value?.sendMessage('get_all_users')
+  }
+
   const sendSemanticSearch = (query: string) => {
     ws.value?.sendMessage('semantic_search', { query })
   }
@@ -174,13 +213,19 @@ export const useNoteStore = defineStore('noteStore', () => {
     ws.value?.sendMessage('delete_note', data)
   }
 
-  const sendNewNoteBoars = (data: NoteBoardInsertable) => {
-    ws.value?.sendMessage('new_note_board', data)
+  const sendNewNoteBoard = (data: { title: string }) => {
+    if (userAuthStore.authUser) {
+      const dataToSubmit: NoteBoardInsertable = {
+        title: data.title,
+        ownerId: userAuthStore.authUser?.id,
+      }
+      ws.value?.sendMessage('new_note_board', dataToSubmit)
+    }
   }
 
   const sendUpdateNoteBoard = (data: NoteBoardUpdateable) => {
     const nb = getBoardById(data.id)
-    if (nb?.ownerId !== authStore.authUser?.id) {
+    if (nb?.ownerId !== userAuthStore.authUser?.id) {
       throw new Error(`userId ${nb?.ownerId} is not the owner of ${data.id}`)
     }
     ws.value?.sendMessage('update_note_board', data)
@@ -198,6 +243,9 @@ export const useNoteStore = defineStore('noteStore', () => {
     ws.value?.sendMessage('remove_collaborator', data)
   }
 
+  // ===============================================
+  // Hooks
+  // ===============================================
   onMounted(() => {
     if (ws.value) {
       //handle
@@ -208,6 +256,7 @@ export const useNoteStore = defineStore('noteStore', () => {
       ws.value.on('new_note', handleNewNote)
       ws.value.on('updated_note', handleUpdateNote)
       ws.value.on('delete_note', handleDeleteNote)
+      ws.value.on('new_note_board', handleNewNoteBoard)
       ws.value.on('update_note_board', handleNoteBoardUpdate)
       ws.value.on('delete_note_board', handleDeleteNoteBoard)
       ws.value.on('updated_collaborator', handleAddCollaborator)
@@ -235,22 +284,24 @@ export const useNoteStore = defineStore('noteStore', () => {
 
   return {
     allUsers,
-    noteBoards,
-    noteBoardIds,
+    noteBoardsData,
     searchResults,
 
     isConnected,
     storeUser,
     error,
+    connectToWebSocket,
     // getters
     getBoardById,
     // send message
+    sendGetAllBoards,
+    sendGetAllUsers,
     sendSemanticSearch,
     sendNewNote,
     sendUpdateNoteContent,
     sendUpdateNoteIsDone,
     sendDeleteNote,
-    sendNewNoteBoars,
+    sendNewNoteBoard,
     sendUpdateNoteBoard,
     sendDeleteNoteBoard,
     sendAddCollaborator,

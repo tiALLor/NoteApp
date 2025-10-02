@@ -186,7 +186,9 @@ export class NoteService {
   // ===========================================
   // create new note board
   // ===========================================
-  async createNoteBoard(data: NoteBoardInsertable): Promise<NoteBoardPublic> {
+  async createNoteBoard(
+    data: NoteBoardInsertable
+  ): Promise<NoteBoardWithNoteAndCollaborators> {
     let parsedData: NoteBoardInsertable
 
     try {
@@ -198,7 +200,19 @@ export class NoteService {
 
     const newNoteBoard = await this.noteBoardRepo.createNoteBoard(parsedData)
 
-    return newNoteBoard
+    const noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
+      newNoteBoard.id
+    )
+
+    const notes = await this.noteRepo.getNotesByNoteBoardId(newNoteBoard.id)
+    const collaborators =
+      await this.boardCollaboratorRepo.getCollaboratorByBoardId(newNoteBoard.id)
+
+    return {
+      ...noteBoard,
+      notes,
+      collaborators,
+    }
   }
 
   // ===========================================

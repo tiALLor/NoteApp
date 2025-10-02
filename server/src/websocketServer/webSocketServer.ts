@@ -62,7 +62,10 @@ export type WsMessage =
       type: 'delete_note'
       data: { noteId: number; boardId: number } | NotePublic
     }
-  | { type: 'new_note_board'; data: NoteBoardInsertable }
+  | {
+      type: 'new_note_board'
+      data: NoteBoardInsertable | NoteBoardWithNoteAndCollaborators
+    }
   | { type: 'update_note_board'; data: NoteBoardUpdateable }
   | { type: 'updated_note_board'; data: NoteBoardPublic }
   | {
@@ -477,10 +480,11 @@ export class NoteWebSocketServer {
     if (!connection || !userId) return
 
     try {
-      const responseData = await this.noteService.createNoteBoard(data)
+      const responseData: NoteBoardWithNoteAndCollaborators =
+        await this.noteService.createNoteBoard(data)
 
       const message: WsMessage = {
-        type: 'updated_note_board',
+        type: 'new_note_board',
         data: responseData,
       }
 

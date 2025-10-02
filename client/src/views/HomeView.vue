@@ -2,13 +2,15 @@
 import { ref } from 'vue'
 import { FwbButton, FwbTab, FwbTabs } from 'flowbite-vue'
 import { useUserAuthStore } from '@/stores/userAuthStore'
+import NoteService from '@/components/NoteService.vue'
 
+
+//TODO cleanup imports
 const userAuthStore = useUserAuthStore()
-
 </script>
 
 <template>
-  <div v-if="!userAuthStore.isAuthenticated" aria-label="our menu">
+  <div v-if="!userAuthStore.isAuthenticated" aria-label="home unauthorized">
     <div>Note app</div>
     <div>
       <p class="mt-4 text-gray-500 dark:text-gray-400 lg:max-w-md">
@@ -21,5 +23,8 @@ const userAuthStore = useUserAuthStore()
         </FwbButton>
       </div>
     </div>
+  </div>
+  <div v-if="userAuthStore.isAuthenticated">
+    <NoteService />
   </div>
 </template>

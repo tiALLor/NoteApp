@@ -149,10 +149,17 @@ describe('NoteService', () => {
     test('creates board', async () => {
       const board = { id: 1, title: 'B', ownerId: 99 }
       mockNoteBoardRepo.createNoteBoard.mockResolvedValue(board)
+      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockResolvedValue(board)
+      mockNoteRepo.getNotesByNoteBoardId.mockResolvedValue([])
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue([])
 
       const result = await service.createNoteBoard({ title: 'B', ownerId: 99 })
 
-      expect(result).toEqual(board)
+      expect(result).toEqual({
+        ...board,
+        notes: [],
+        collaborators: [],
+      })
     })
   })
 

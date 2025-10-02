@@ -29,32 +29,20 @@ const router = createRouter({
       ],
     },
     // TODO: adjust routs
-    // {
-    //   path: '',
-    //   component: MainLayout,
-    //   beforeEnter: [authenticateAdmin],
-    //   children: [
-    //     {
-    //       path: '/createUser',
-    //       name: 'CreateUser',
-    //       component: () => import('../views/CreateUser.vue'),
-    //     },
-    //   ],
-    // },
     {
       path: '',
       component: MainLayout,
       beforeEnter: [authenticateUser],
       children: [
         // {
-        //   path: '/orderSummary',
-        //   name: 'OrderSummary',
+        //   path: '/notes',
+        //   name: 'Notes',
         //   component: () => import('../views/OrderSummary.vue'),
         // },
         {
           path: '/accountSettings',
           name: 'AccountSettings',
-          component: () => import('../views/AccountSettings.vue'),
+          component: () => import('../views/AccountSettingsView.vue'),
         },
       ],
     },

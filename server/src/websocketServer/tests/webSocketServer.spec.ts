@@ -373,7 +373,7 @@ describe('NoteWebSocketServer', () => {
 
       expect(mockUserRepo.getUserAll).toHaveBeenCalled()
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error fetching all boards:', // Note: The log message is slightly confusing here ("all boards" vs "all users")
+        'Error fetching all users:', // Note: The log message is slightly confusing here ("all boards" vs "all users")
         mockError
       )
       expect(mockWs.send).toHaveBeenCalledWith(
@@ -441,7 +441,7 @@ describe('NoteWebSocketServer', () => {
 
       expect(mockNoteService.semanticSearch).toHaveBeenCalled()
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error fetching all boards:',
+        'Error fetching semantic search:',
         mockError
       )
       expect(mockWs.send).toHaveBeenCalledWith(

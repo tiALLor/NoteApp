@@ -1,5 +1,5 @@
 import { apiWsOrigin } from '../config'
-import { ref, type Ref } from 'vue'
+import { ref } from 'vue'
 import type { WsMessage } from '@server/shared/types'
 
 type MessageHandler = (data: any, connectionId?: string) => void

@@ -58,7 +58,7 @@ export class NoteService {
   private limit = 5
 
   // setup for semantic search
-  private threshold = 0.5
+  private threshold = 0.8
 
   constructor(db: Database) {
     this.vectorService = new VectorService()
@@ -390,7 +390,7 @@ export class NoteService {
   async semanticSearch(
     userId: number,
     data: NoteSemanticSearch
-  ): Promise<(NotePublic & { similarity: number })[]> {
+  ): Promise<(NotePublic & { similarity: number; title: string })[]> {
     let parsedData: NoteSemanticSearch
     let generatedEmb
 

@@ -49,17 +49,6 @@ vi.mock('@server/repositories/userRepository', () => ({
 
 // Mock token payload functions
 vi.mock('@server/trpc/tokenPayload')
-// TODO: clean up code
-// vi.mock('@server/trpc/tokenPayload', () => ({
-//   prepareTokenPayload: vi.fn().mockReturnValue({
-//     user: { id: 1, userName: 'test-user' },
-//     type: 'access',
-//   }),
-//   parseTokenPayload: vi.fn().mockReturnValue({
-//     user: { id: 1, userName: 'test-user' },
-//     type: 'refresh',
-//   }),
-// }))
 
 let authService: AuthService
 let mockDatabase: Database
@@ -75,12 +64,6 @@ const testUserPublic: UserPublic = {
   id: fakeTestUserWithHash.id,
   userName: fakeTestUserWithHash.userName,
 }
-
-// TODO: clean up code
-// const testTokens: AuthTokens = {
-//   accessToken: 'access-token',
-//   refreshToken: 'refresh-token',
-// }
 
 beforeEach(() => {
   // Reset all mocks

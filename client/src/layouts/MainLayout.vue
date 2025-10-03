@@ -12,11 +12,9 @@ const userAuthStore = useUserAuthStore()
 const links = computed(() => [
   { label: 'Home', name: 'Home' },
 
-  // TODO: implement tabs
   ...(userAuthStore.isAuthenticated
     ? [
         { label: 'Account settings', name: 'AccountSettings' },
-        // { label: 'Notes', name: 'Notes' },
       ]
     : [
         { label: 'Login', name: 'Login' },

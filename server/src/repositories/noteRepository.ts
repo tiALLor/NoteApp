@@ -115,7 +115,7 @@ export function noteRepository(db: Database) {
         limit?: number
         threshold?: number
       }
-    ): Promise<(NotePublic & { similarity: number })[]> {
+    ): Promise<(NotePublic & { similarity: number; title: string })[]> {
       const { limit = 10, threshold = 0.5 } = options
       const similarity = cosineDistance('contentEmbedding', embedding)
 
@@ -129,6 +129,7 @@ export function noteRepository(db: Database) {
         )
         .select([
           ...prefixTable('note', noteKeyPublic),
+          'noteBoard.title',
           similarity.as('similarity'),
         ])
         .where(similarity, '<', threshold)

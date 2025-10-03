@@ -39,6 +39,8 @@ export type WsMessage =
       type: 'connected'
       data: { connectionId: string; user: { id: number; username: string } }
     }
+  | { type: 'ping' }
+  | { type: 'pong' }
   | { type: 'get_all_boards' }
   | { type: 'receive_all_boards'; data: NoteBoardWithNoteAndCollaborators[] }
   | { type: 'get_all_users'; data: UserPublic[] }
@@ -48,7 +50,7 @@ export type WsMessage =
     }
   | {
       type: 'semantic_search_result'
-      data: (NotePublic & { similarity: number })[]
+      data: (NotePublic & { similarity: number; title: string })[]
     }
   | { type: 'new_note'; data: NoteInsertable | NotePublic }
   | {
@@ -183,6 +185,7 @@ export class NoteWebSocketServer {
 
     try {
       const message = JSON.parse(data.toString())
+      // console.log(message)
 
       switch (message.type) {
         case 'get_all_boards':
@@ -228,6 +231,9 @@ export class NoteWebSocketServer {
         case 'remove_collaborator':
           await this.handleRemoveCollaborator(connectionId, message.data)
           break
+        case 'ping':
+          await this.handlePing(connectionId)
+          break
 
         default:
           logger.warn('Unknown message type:', message.type)
@@ -238,6 +244,39 @@ export class NoteWebSocketServer {
         JSON.stringify({
           type: 'error',
           data: { message: 'Invalid message format' },
+        })
+      )
+    }
+  }
+
+  // ===========================================
+  // ping
+  // ===========================================
+  private async handlePing(connectionId: string): Promise<void> {
+    const connection = this.connections.get(connectionId)
+
+    const userId = connection?.userId
+
+    if (!connection || !userId) {
+      return
+    }
+
+    // TODO: disconnection logic with timer, ping resets timer
+
+    try {
+      const message: WsMessage = {
+        type: 'pong',
+      }
+
+      if (connection.ws.readyState === WebSocket.OPEN) {
+        connection.ws.send(JSON.stringify(message))
+      }
+    } catch (error) {
+      logger.error('Error sending pong:', error)
+      connection.ws.send(
+        JSON.stringify({
+          type: 'error',
+          data: { message: 'Failed to download note boards' },
         })
       )
     }
@@ -297,7 +336,7 @@ export class NoteWebSocketServer {
         connection.ws.send(JSON.stringify(message))
       }
     } catch (error) {
-      logger.error('Error fetching all boards:', error)
+      logger.error('Error fetching all users:', error)
       connection.ws.send(
         JSON.stringify({
           type: 'error',
@@ -334,7 +373,7 @@ export class NoteWebSocketServer {
         connection.ws.send(JSON.stringify(message))
       }
     } catch (error) {
-      logger.error('Error fetching all boards:', error)
+      logger.error('Error fetching semantic search:', error)
       connection.ws.send(
         JSON.stringify({
           type: 'error',
@@ -536,7 +575,7 @@ export class NoteWebSocketServer {
   }
 
   // ===========================================
-  // delete note boars
+  // delete note board
   // ===========================================
   private async handleDeleteNoteBoard(
     connectionId: string,

@@ -28,7 +28,6 @@ const router = createRouter({
         },
       ],
     },
-    // TODO: adjust routs
     {
       path: '',
       component: MainLayout,

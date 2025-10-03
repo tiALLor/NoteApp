@@ -6,6 +6,7 @@ import { useNoteStore } from '@/stores/noteStore'
 import NoteBoardCard from './NoteBoardCard.vue'
 import useErrorMessage from '@/composables/useErrorMessage'
 import type { NoteBoardWithNoteAndCollaborators } from '@server/services/noteService'
+import SemanticSearch from './SemanticSearch.vue'
 
 const noteStore = useNoteStore()
 
@@ -32,7 +33,22 @@ watch(
   { immediate: true }
 )
 
-const [createNoteBoardAction, errorMessage] = useErrorMessage(async () => {
+const errorMessage = ref('')
+// Watch the store's global error state
+watch(
+  () => noteStore.error,
+  (newError) => {
+    if (newError) {
+      errorMessage.value = newError
+      hasSucceeded.value = false
+    } else {
+      errorMessage.value = ''
+    }
+  },
+  { immediate: true }
+)
+
+const [createNoteBoardAction] = useErrorMessage(async () => {
   loading.value = false
 
   hasSucceeded.value = false
@@ -101,5 +117,8 @@ onMounted(() => {
         You don't have any note boards yet. Create one above!
       </p>
     </div>
+  </div>
+  <div>
+    <SemanticSearch />
   </div>
 </template>

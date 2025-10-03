@@ -5,7 +5,6 @@ import { createDatabase } from './database'
 import config from './config'
 import logger from './utils/logger'
 
-
 const database = createDatabase(config.database)
 
 try {
@@ -26,5 +25,5 @@ new NoteWebSocketServer(httpServer, database)
 httpServer.listen(config.port, () => {
   // eslint-disable-next-line no-console
   logger.info(`Server is running at http://localhost:${config.port}`)
-  console.log(`WebSocket endpoint: ws://localhost:${config.port}`);
+  logger.info(`WebSocket endpoint: ws://localhost:${config.port}`)
 })

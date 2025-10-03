@@ -4,9 +4,9 @@ import { useNoteStore } from '@/stores/noteStore'
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import { FwbButton, FwbSpinner, FwbCard, FwbModal, FwbInput } from 'flowbite-vue'
 import useErrorMessage from '@/composables/useErrorMessage'
-import type { NoteBoardUpdateable, NoteInsertable } from '@server/shared/types'
+import type { NoteInsertable } from '@server/shared/types'
 import NoteModalBody from './NoteModalBody.vue'
-import SuperJSON from 'superjson'
+import CollaboratorModalBody from './CollaboratorModalBody.vue'
 
 const noteStore = useNoteStore()
 const userAuthStore = useUserAuthStore()
@@ -19,12 +19,12 @@ const noteBoardOwner = computed(() => {
   const board = noteStore.noteBoardsData?.find((noteBoard) => noteBoard.id === noteBoardId)
   return board
     ? {
-        OwnerId: board.ownerId,
-        OwnerUserName: board.ownerUserName,
+        ownerId: board.ownerId,
+        ownerUserName: board.ownerUserName,
       }
     : {
-        OwnerId: null,
-        OwnerUserName: null,
+        ownerId: null,
+        ownerUserName: null,
       }
 })
 
@@ -38,18 +38,13 @@ const noteBoardNotes = computed(() => {
   return board?.notes ? board.notes : []
 })
 
-const noteBoardCollaborators = computed(() => {
-  const board = noteStore.noteBoardsData?.find((noteBoard) => noteBoard.id === noteBoardId)
-  return board?.collaborators ? board.collaborators : []
-})
-
 const noteId = ref<number | undefined>()
 const noteForm = ref<NoteInsertable>({
   boardId: noteBoardId,
   content: '',
 })
 
-const isOwner = computed(() => noteBoardOwner.value.OwnerId === userAuthStore.authUser?.id)
+const isOwner = computed(() => noteBoardOwner.value.ownerId === userAuthStore.authUser?.id)
 
 const loading = ref(false)
 
@@ -80,19 +75,8 @@ function closeNoteModal() {
 
 const isShowCollaboratorModal = ref(false)
 
-const modalCollaboratorTitle = ref('')
-
-const modalCollaboratorFunction = ref<'add' | 'remove' | undefined>()
-
-function showAddCollaboratorModal() {
-  modalCollaboratorTitle.value = 'Add Collaborator'
+function showCollaboratorModal() {
   modalNoteFunction.value = 'add'
-  isShowCollaboratorModal.value = true
-}
-
-function showRemoveCollaboratorModal() {
-  modalCollaboratorTitle.value = 'Remove Collaborator'
-  modalCollaboratorFunction.value = 'remove'
   isShowCollaboratorModal.value = true
 }
 
@@ -111,7 +95,7 @@ function closeEditBoardTitleModal() {
   isShowEditTitleModal.value = false
 }
 
-const [noteToggleIsDone] = useErrorMessage(async (noteId, status) => {
+const [toggleNoteIsDoneAction] = useErrorMessage(async (noteId, status) => {
   noteStore.sendUpdateNoteIsDone({
     id: noteId,
     boardId: noteBoardId,
@@ -120,14 +104,14 @@ const [noteToggleIsDone] = useErrorMessage(async (noteId, status) => {
   hasSucceeded.value = true
 })
 
-const [deleteNoteBoard] = useErrorMessage(async () => {
+const [deleteNoteBoardAction] = useErrorMessage(async () => {
   noteStore.sendDeleteNoteBoard({
     boardId: noteBoardId,
   })
   hasSucceeded.value = true
 })
 
-const [deleteNote] = useErrorMessage(async (noteId) => {
+const [deleteNoteAction] = useErrorMessage(async (noteId) => {
   noteStore.sendDeleteNote({
     noteId,
     boardId: noteBoardId,
@@ -139,7 +123,8 @@ const newTitleForBoard = ref<string>('')
 
 const [updateBoardTitleAction] = useErrorMessage(async () => {
   loading.value = true
-  closeEditBoardTitleModal() // Close modal immediately
+  // Close modal immediately after submit
+  closeEditBoardTitleModal()
   noteStore.sendUpdateNoteBoard({
     id: noteBoardId,
     title: newTitleForBoard.value,
@@ -153,75 +138,83 @@ const hasSucceeded = ref(false)
 
 <template>
   <fwb-card class="relative w-full">
-    <h5 class="mb-2 p-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-      {{ noteBoardTitle }}
-    </h5>
-    <div class="flex">
-      <div class="p-2">
-        <fwb-button v-if="isOwner" size="xs" color="default" @click="showEditBoardTitleModal"
-          >Edit Title</fwb-button
-        >
-      </div>
-      <div class="p-2">
-        <fwb-button size="xs" color="default" @click="showAddNoteModal">Add Note</fwb-button>
-      </div>
-      <div class="p-2">
-        <fwb-button
-          v-if="isOwner"
-          size="xs"
-          color="default"
-          @click="showAddCollaboratorModal"
-          class="mb-2"
-          >Add Collaborator</fwb-button
-        >
-        <fwb-button v-if="isOwner" size="xs" color="default" @click="showRemoveCollaboratorModal"
-          >Remove Collaborator</fwb-button
-        >
-      </div>
-
-      <div class="p-2">
-        <fwb-button v-if="isOwner" size="xs" color="default" @click="deleteNoteBoard"
-          >Delete NoteBoard</fwb-button
-        >
-      </div>
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-gray-800/60"
+    >
+      <fwb-spinner size="6" />
     </div>
-    <div class="max-h-[55vh] space-y-2 text-wrap">
-      <p
-        v-if="noteBoardNotes.length === 0 && !loading"
-        class="py-4 text-center text-gray-500 dark:text-gray-400"
-      >
-        No notes yet. Add one!
-      </p>
-      <div
-        v-for="note in noteBoardNotes"
-        :key="note.id"
-        class="items-start justify-between rounded-lg border border-gray-200 p-3 shadow-sm sm:flex-row sm:items-center"
-        :data-testId="`row-${note.content}`"
-      >
-        <!-- Note content -->
-        <div class="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
-          <div
-            class="word-wrap m-1 p-1 text-sm font-medium text-gray-900"
-            :style="{ background: note.isDone ? 'green' : '' }"
-          >
-            {{ note.content }}
-          </div>
-        </div>
 
-        <!-- Action Buttons -->
-        <div class="flex">
-          <fwb-button size="xs" color="green" @click="noteToggleIsDone(note.id, note.isDone)">
-            Toggle Done
+    <div class="p-4 sm:p-5">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h5 class="flex-grow text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          {{ noteBoardTitle }}
+        </h5>
+
+        <div class="flex flex-wrap gap-2">
+          <fwb-button v-if="isOwner" size="sm" color="default" @click="showEditBoardTitleModal">
+            Edit Title
           </fwb-button>
-          <div class="mt-2 flex w-full gap-2 sm:mt-0 sm:w-auto">
+          <fwb-button size="sm" color="default" @click="showAddNoteModal"> Add Note </fwb-button>
+          <fwb-button v-if="isOwner" size="sm" color="default" @click="showCollaboratorModal">
+            Manage Collaborators
+          </fwb-button>
+          <fwb-button v-if="isOwner" size="sm" color="red" @click="deleteNoteBoardAction">
+            Delete Board
+          </fwb-button>
+        </div>
+      </div>
+
+      <div class="custom-scrollbar max-h-[55vh] space-y-3 overflow-y-auto p-1">
+        <p
+          v-if="noteBoardNotes.length === 0 && !loading"
+          class="py-4 text-center text-gray-500 dark:text-gray-400"
+        >
+          No notes yet. Add one!
+        </p>
+        <div
+          v-for="note in noteBoardNotes"
+          :key="note.id"
+          class="flex flex-col rounded-lg border border-gray-200 p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+          :data-testId="`row-${note.content}`"
+          :class="{ 'bg-green-100 dark:bg-green-900': note.isDone }"
+        >
+          <div class="mb-2 flex items-start">
+            <div
+              class="m-1 w-full break-words p-1 text-sm font-medium text-gray-900 dark:text-white"
+              :class="{ 'line-through': note.isDone }"
+            >
+              {{ note.content }}
+            </div>
+          </div>
+
+          <div
+            class="flex flex-wrap justify-end gap-2 border-t border-gray-200 pt-2 dark:border-gray-700 sm:justify-start"
+          >
+            <fwb-button
+              size="xs"
+              :color="note.isDone ? 'yellow' : 'green'"
+              @click="toggleNoteIsDoneAction(note.id, note.isDone)"
+              :disabled="loading"
+            >
+              {{ note.isDone ? 'Undo' : 'Mark Done' }}
+            </fwb-button>
             <fwb-button
               size="xs"
               color="purple"
               @click.prevent="showEditNoteModal(note.id, note.content)"
+              :disabled="loading"
             >
               Edit
             </fwb-button>
-            <fwb-button size="xs" color="pink" @click="deleteNote(note.id)"> Delete </fwb-button>
+            <fwb-button
+              size="xs"
+              color="pink"
+              @click="deleteNoteAction(note.id)"
+              :disabled="loading"
+            >
+              Delete
+            </fwb-button>
           </div>
         </div>
       </div>
@@ -242,14 +235,13 @@ const hasSucceeded = ref(false)
   </div>
   <div>
     <CollaboratorModalBody
-      :title="modalCollaboratorTitle"
       :isShowModal="isShowCollaboratorModal"
-      :boardId="noteBoardId"
-      :modalFunction="modalCollaboratorFunction"
+      :noteBoardId="noteBoardId"
+      :noteBoardOwner
       @close-modal="closeCollaboratorModal"
-      @success="closeCollaboratorModal"
     />
   </div>
+
   <fwb-modal v-if="isShowEditTitleModal" @close="closeEditBoardTitleModal">
     <template #header>
       <div class="flex items-center text-lg">Edit Board Title</div>
@@ -271,5 +263,22 @@ const hasSucceeded = ref(false)
       </FwbButton>
     </template>
   </fwb-modal>
-  <fwb-spinner v-if="loading" size="3" class="mx-auto my-4" />
 </template>
+
+<style scoped>
+/* Ensure custom-scrollbar is defined, as it was in previous versions */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+</style>

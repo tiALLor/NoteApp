@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type {
   BoardCollaboratorInsertable,
@@ -25,7 +25,7 @@ export const useNoteStore = defineStore('noteStore', () => {
   const userAuthStore = useUserAuthStore()
   const allUsers = ref<UserPublic[] | null>(null)
   const noteBoardsData = ref<NoteBoardWithNoteAndCollaborators[] | null>(null)
-  const searchResults = ref<(NotePublic & { similarity: number })[] | null>(null)
+  const searchResults = ref<(NotePublic & { similarity: number, title: string })[] | null>(null)
 
   const connectionId = ref<string | null>(null)
   const storeUser = ref<UserPublic | null>(null)
@@ -92,7 +92,9 @@ export const useNoteStore = defineStore('noteStore', () => {
     allUsers.value = data
   }
 
-  const handleSemanticSearchResult = (data: (NotePublic & { similarity: number })[]) => {
+  const handleSemanticSearchResult = (
+    data: (NotePublic & { similarity: number; title: string })[]
+  ) => {
     searchResults.value = data
   }
 
@@ -136,15 +138,13 @@ export const useNoteStore = defineStore('noteStore', () => {
     if (!noteBoardsData.value) return
 
     const index = noteBoardsData.value.findIndex((noteBoard) => noteBoard.id === data.id)
+    console.log(index)
     if (index === -1) {
       throw new Error(`BoardId ${data.id} was not found in store`)
     }
 
-    const board = noteBoardsData.value[index]
-    noteBoardsData.value[index] = {
-      ...board,
-      title: data.title,
-    }
+    console.log('started update')
+    noteBoardsData.value[index].title = data.title
   }
 
   const handleDeleteNoteBoard = (data: NoteBoardPublic) => {
@@ -257,7 +257,7 @@ export const useNoteStore = defineStore('noteStore', () => {
       ws.value.on('updated_note', handleUpdateNote)
       ws.value.on('delete_note', handleDeleteNote)
       ws.value.on('new_note_board', handleNewNoteBoard)
-      ws.value.on('update_note_board', handleNoteBoardUpdate)
+      ws.value.on('updated_note_board', handleNoteBoardUpdate)
       ws.value.on('delete_note_board', handleDeleteNoteBoard)
       ws.value.on('updated_collaborator', handleAddCollaborator)
       ws.value.on('error', handleError)

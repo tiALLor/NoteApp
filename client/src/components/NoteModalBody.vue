@@ -4,6 +4,7 @@ import { FwbButton, FwbModal, FwbInput } from 'flowbite-vue'
 import PageForm from '@/components/PageForm.vue'
 import useErrorMessage from '@/composables/useErrorMessage'
 import { useNoteStore } from '@/stores/noteStore'
+import AlertMessages from '@/components/AlertMessages.vue'
 
 const noteStore = useNoteStore()
 
@@ -42,8 +43,25 @@ watch(
     if (isOpen) {
       hasSucceeded.value = false
       successMessage.value = undefined
+      if (props.modalFunction === 'add') {
+        noteForm.value.content = ''
+      }
     }
   }
+)
+const errorMessage = ref('')
+// Watch the store's global error state
+watch(
+  () => noteStore.error,
+  (newError) => {
+    if (newError) {
+      errorMessage.value = newError
+      hasSucceeded.value = false
+    } else {
+      errorMessage.value = ''
+    }
+  },
+  { immediate: true }
 )
 
 const [submit] = useErrorMessage(async () => {
@@ -96,5 +114,12 @@ const [submit] = useErrorMessage(async () => {
         </template>
       </PageForm>
     </template>
+    <div class="pb-5">
+      <AlertMessages
+        :showSuccess="hasSucceeded"
+        successMessage="Meal added."
+        :errorMessage="errorMessage"
+      />
+    </div>
   </fwb-modal>
 </template>

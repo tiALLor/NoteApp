@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { FwbButton, FwbTab, FwbTabs } from 'flowbite-vue'
+import { FwbButton, } from 'flowbite-vue'
 import { useUserAuthStore } from '@/stores/userAuthStore'
 import NoteService from '@/components/NoteService.vue'
 
 
-//TODO cleanup imports
 const userAuthStore = useUserAuthStore()
 </script>
 

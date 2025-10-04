@@ -2,6 +2,7 @@ import { expect } from 'vitest'
 import type { User, BoardCollaborator } from '@server/database/types'
 import type { Insertable } from 'kysely'
 import { random, randomValidPassword, randomVector } from '@tests/utils/random'
+import { vectorSize } from '@server/services/vectorService'
 import type { UserInsertable, UserPublic } from '../user'
 import type { NoteInsertable } from '../note'
 import type { NoteBoardInsertable } from '../noteBoard'
@@ -11,10 +12,6 @@ const randomId = () =>
     min: 1,
     max: 1000000,
   })
-
-// TODO: change to import from Embeddings service
-// cohere embedding service
-const vectorSize = 1536
 
 export const fakeUser = <T extends Partial<UserInsertable>>(
   overrides: T = {} as T
@@ -58,6 +55,14 @@ export const fakeNote = <T extends Partial<NoteInsertable>>(
   boardId: randomId(),
   content: random.string(),
   contentEmbedding: randomVector(vectorSize),
+  ...overrides,
+})
+export const fakeNoteWithoutEmb = <T extends Partial<NoteInsertable>>(
+  overrides: T = {} as T
+): NoteInsertable => ({
+  boardId: randomId(),
+  content: random.string(),
+  isDone: false,
   ...overrides,
 })
 

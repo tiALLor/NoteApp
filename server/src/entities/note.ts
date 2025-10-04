@@ -1,10 +1,7 @@
 import { z } from 'zod'
 import type { Note } from '@server/database/types'
+import { vectorSize } from '@server/services/vectorService'
 import { idSchema, dateTimeSchema } from './shared'
-
-// TODO: change to import from Embeddings service
-// cohere embedding service
-const vectorSize = 1536
 
 // ===========================================
 // main schema
@@ -27,7 +24,6 @@ export const noteInsertableSchema = noteSchema.pick({
   boardId: true,
   content: true,
   contentEmbedding: true,
-  createdAt: true,
 })
 
 export type NoteInsertable = z.infer<typeof noteInsertableSchema>

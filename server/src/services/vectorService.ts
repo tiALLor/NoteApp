@@ -11,6 +11,8 @@ type InputType =
 
 type EmbeddingType = 'float' | 'int8' | 'uint8' | 'binary' | 'ubinary'
 
+export const vectorSize = 1536
+
 export class VectorService {
   #client: CohereClientV2
 

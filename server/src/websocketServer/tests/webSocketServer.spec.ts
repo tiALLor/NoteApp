@@ -5,7 +5,6 @@ import { vi, describe, test, expect, beforeEach, type Mock } from 'vitest'
 import { WebSocket } from 'ws'
 import { NoteWebSocketServer } from '@server/websocketServer/webSocketServer'
 
-// 1. Hoist mocks safely
 const mockLogger = vi.hoisted(() => ({
   info: vi.fn(),
   warn: vi.fn(),

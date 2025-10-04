@@ -7,7 +7,8 @@ import { selectAll, insertAll } from '@tests/utils/records'
 import { wrapInRollbacks } from '@tests/utils/transactions'
 import { fakeNote, fakeUserWithHash } from '@server/entities/tests/fakes'
 import { random, randomVector } from '@tests/utils/random'
-import type { NoteInsertable, NotePublic } from '@server/entities/note'
+import type { NotePublic } from '@server/entities/note'
+import { vectorSize } from '@server/services/vectorService'
 import { noteRepository } from '../noteRepository'
 
 // ===========================================
@@ -29,7 +30,6 @@ await db.deleteFrom('note').execute()
 await db.deleteFrom('noteBoard').execute()
 await db.deleteFrom('user').execute()
 
-
 const [testUser] = await insertAll(db, 'user', [fakeUserWithHash()])
 
 const [testNoteBoard] = await insertAll(db, 'noteBoard', [
@@ -39,12 +39,9 @@ const [testNoteBoard] = await insertAll(db, 'noteBoard', [
   },
 ])
 
-// TODO: change to import from Embeddings service
-// cohere embedding service
-const vectorSize = 1536
 const testVector = randomVector(vectorSize)
 
-const testNote: NoteInsertable = {
+const testNote = {
   boardId: testNoteBoard.id,
   content: random.toString(),
   createdAt: new Date('2024-01-01T00:00:00Z').toISOString(),

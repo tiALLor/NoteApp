@@ -1,5 +1,6 @@
 import { omit, pick } from 'lodash-es'
 import { randomVector } from '@tests/utils/random'
+import { vectorSize } from '@server/services/vectorService'
 import {
   noteSchema,
   noteInsertableSchema,
@@ -9,10 +10,6 @@ import {
   noteEmbUpdateableSchema,
 } from '../note'
 import { fakeNote } from './fakes'
-
-// TODO: change to import from Embeddings service
-// cohere embedding service
-const vectorSize = 1536
 
 describe('noteSchema - schema parse', () => {
   it('should validate note correctly', async () => {
@@ -133,7 +130,7 @@ describe('insertableNoteSchema', () => {
     const record = { ...fakeNote(), id: 123 }
 
     expect(noteInsertableSchema.parse(record)).toEqual(
-      pick(record, ['boardId', 'content', 'contentEmbedding'])
+      pick(record, ['boardId', 'content', 'contentEmbedding', 'isDone'])
     )
   })
 })

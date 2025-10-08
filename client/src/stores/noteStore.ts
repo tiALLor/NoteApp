@@ -158,7 +158,7 @@ export const useNoteStore = defineStore('noteStore', () => {
   }
   const handleAddCollaborator = (data: NoteBoardWithNoteAndCollaborators) => {
     if (!noteBoardsData.value) {
-      noteBoardsData.value = [data] // First board added
+      noteBoardsData.value = [data]
       return
     }
 

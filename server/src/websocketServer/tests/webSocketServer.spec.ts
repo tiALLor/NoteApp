@@ -82,9 +82,10 @@ vi.mock('crypto', () => {
 })
 
 vi.mock('url', () => {
-  const mock = { parse: vi.fn() }
+  const mock = { parse: vi.fn(), fileURLToPath: vi.fn(() => '/mock/path') }
   return { ...mock, default: mock }
 })
+
 // --- test helpers and setup ---
 const CONNECTION_ID = 'test-connection-id-123-123'
 const mockUserId = 101
@@ -216,7 +217,11 @@ describe('NoteWebSocketServer', () => {
       // @ts-ignore
       await server.handleNewNote(CONNECTION_ID, payload)
 
-      expect(mockNoteService.createNote).toHaveBeenCalledWith(payload)
+      // 101 is userId from Mock
+      expect(mockNoteService.createNote).toHaveBeenCalledWith(
+        { boardId: payload.boardId, content: payload.content },
+        101
+      )
       // @ts-ignore
       expect(server.broadCastMessage).toHaveBeenCalledWith(recipients, {
         type: 'new_note',
@@ -238,7 +243,12 @@ describe('NoteWebSocketServer', () => {
       // @ts-ignore
       await server.handleUpdateNote(CONNECTION_ID, payload as any)
 
-      expect(mockNoteService.updateNoteContent).toHaveBeenCalledWith(payload)
+      // 101 is userId from Mock
+      expect(mockNoteService.updateNoteContent).toHaveBeenCalledWith(
+        { id: payload.id, content: payload.content },
+        payload.boardId,
+        101
+      )
       expect(mockNoteService.isDoneNote).not.toHaveBeenCalled()
     })
 
@@ -254,7 +264,12 @@ describe('NoteWebSocketServer', () => {
       // @ts-ignore
       await server.handleUpdateNote(CONNECTION_ID, payload as any)
 
-      expect(mockNoteService.isDoneNote).toHaveBeenCalledWith(payload)
+      // 101 is user id from Mock
+      expect(mockNoteService.isDoneNote).toHaveBeenCalledWith(
+        { id: payload.id, isDone: payload.isDone },
+        payload.boardId,
+        101
+      )
       expect(mockNoteService.updateNoteContent).not.toHaveBeenCalled()
     })
 
@@ -268,7 +283,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Update failed: missing content or status' },
+          data: { message: 'Update failed: missing content or status.' },
         })
       )
     })
@@ -378,7 +393,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to download note boards' }, // Note: The error message is generic ("note boards" vs "users")
+          data: { message: `Failed to download note boards. ${mockError}` },
         })
       )
     })
@@ -446,7 +461,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to download note boards' },
+          data: { message: `Failed to download note boards. ${mockError}` },
         })
       )
     })
@@ -497,7 +512,11 @@ describe('NoteWebSocketServer', () => {
       // @ts-ignore: Accessing private method for unit test
       await server.handleDeleteNote(CONNECTION_ID, mockDeleteData)
 
-      expect(mockNoteService.deleteNote).toHaveBeenCalledWith(mockDeleteData)
+      // 101 is user id from mock
+      expect(mockNoteService.deleteNote).toHaveBeenCalledWith(
+        mockDeleteData,
+        101
+      )
 
       // Verify both async calls ran in parallel via Promise.all
       // @ts-ignore
@@ -529,7 +548,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to delete the note' },
+          data: { message: `Failed to delete the note. ${mockError}` },
         })
       )
     })
@@ -616,7 +635,7 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to update note board title' },
+          data: { message: `Failed to update note board title. ${mockError}` },
         })
       )
     })
@@ -717,7 +736,9 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to remove collaborator  from note board' },
+          data: {
+            message: `Failed to remove collaborator  from note board. ${mockError}`,
+          },
         })
       )
     })
@@ -732,7 +753,9 @@ describe('NoteWebSocketServer', () => {
       expect(mockWs.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to remove collaborator  from note board' },
+          data: {
+            message: `Failed to remove collaborator  from note board. error`,
+          },
         })
       )
     })

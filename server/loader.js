@@ -11,41 +11,50 @@ const resolveAsync = promisify(resolveCallback)
 const baseURL = pathToFileURL(cwd() + '/').href
 
 /**
- * Node's ESM specifier resolution that allows importing ESModules
- * with CommonJS module resolution.
- * Node provides this example in a GitHub repo:
- * https://github.com/nodejs/loaders-test/tree/main/commonjs-extension-resolution-loader
- * MIT License. https://github.com/nodejs/loaders-test/blob/main/LICENSE
+ * Node's ESM specifier resolution, modified for Subpath Exports.
  */
 export async function resolve(specifier, context, next) {
   const { parentURL = baseURL } = context
 
   if (isBuiltin(specifier)) {
     return next(specifier, context)
-  }
+  } // special case for the kysely module to fix the module resolution
 
-  // special case for the kysely module to fix the module resolution
-  // for built dist migration files
   if (specifier === 'kysely') {
     return next(specifier, context)
   }
 
-  // `resolveAsync` works with paths, not URLs
+  // If the specifier is an absolute path, URL, or package name:
+  // (e.g. 'pgvector/pg', 'lodash', 'file:///path/to/file.js')
+  // DO NOT TRY TO RESOLVE IT WITH 'resolve', but let Node.js handle it.
+  // This resolves the 'pgvector/pg' error because Node.js natively knows how Subpath Exports work.
+  if (
+    !specifier.startsWith('.') &&
+    !specifier.startsWith('/') &&
+    !specifier.startsWith('file://')
+  ) {
+    // will cover'pgvector/pg'
+    return next(specifier, context)
+  }
+
+  // If the specifier is a URL, it will be converted to a path.
   if (specifier.startsWith('file://')) {
     specifier = fileURLToPath(specifier)
   }
   const parentPath = fileURLToPath(parentURL)
+  console.log(parentPath)
 
   let url
   try {
+    // Run CommonJS resolution only for relative paths (. / ..)
     const resolution = await resolveAsync(specifier, {
       basedir: dirname(parentPath),
+      // If you are sure that '.mjs' modules should be resolved this way, leave them.
       extensions: ['.js', '.json', '.node', '.mjs'],
     })
     url = pathToFileURL(resolution).href
   } catch (error) {
     if (error.code === 'MODULE_NOT_FOUND') {
-      // Match Node's error code
       error.code = 'ERR_MODULE_NOT_FOUND'
     }
     throw error

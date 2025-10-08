@@ -23,8 +23,10 @@ export default function createApp(db: Database) {
       origin: [
         'http://localhost:5173', // Vite dev server
         'http://localhost:8080', // Alternative dev port
+        'http://localhost:4173', // Alternative dev port
         'http://127.0.0.1:5173',
         'http://127.0.0.1:8080',
+        'http://127.0.0.1:4173',
       ],
       credentials: true, //  Allow cookies
       // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

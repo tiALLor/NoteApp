@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 import logger from '@server/utils/logger'
-import { NoteService } from '../noteService' // adjust path
+import { NoteService } from '../noteService'
 
 // mock logger
 vi.mock('@server/utils/logger', () => ({
@@ -18,6 +18,7 @@ const mockVectorService = {
 }
 vi.mock('../vectorService', () => ({
   VectorService: vi.fn(() => mockVectorService),
+  vectorSize: 5,
 }))
 
 // repositories mocks
@@ -68,13 +69,24 @@ describe('NoteService', () => {
       const fakeNote = { id: 1, content: 'abc' }
       mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockResolvedValue({
         id: 10,
+        ownerId: 2,
+        ownerUserName: 'name'
+
       })
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue([{
+        boardId: 1,
+        userId: 1,
+        collaboratorUserName: 'nameName'
+      }])
       mockNoteRepo.createNote.mockResolvedValue(fakeNote)
       mockVectorService.generateEmbeddings.mockResolvedValue([
         { embedding: [0.1, 0.2] },
       ])
 
-      const result = await service.createNote({ boardId: 10, content: 'abc' })
+      const result = await service.createNote(
+        { boardId: 10, content: 'abc' },
+        1
+      )
 
       expect(result).toEqual(fakeNote)
       expect(mockNoteRepo.createNote).toHaveBeenCalled()
@@ -90,7 +102,7 @@ describe('NoteService', () => {
       )
 
       await expect(
-        service.createNote({ boardId: 999, content: 'abc' })
+        service.createNote({ boardId: 999, content: 'abc' }, 1)
       ).rejects.toThrow()
       expect(logger.error).toHaveBeenCalled()
     })
@@ -100,15 +112,29 @@ describe('NoteService', () => {
     test('updates note and embedding', async () => {
       const updatedNote = { id: 1, content: 'xyz' }
       mockNoteRepo.updateNoteContent.mockResolvedValue(updatedNote)
+      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockResolvedValue({
+        id: 10,
+        ownerId: 2,
+        ownerUserName: 'name'
+
+      })
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue([{
+        boardId: 1,
+        userId: 1,
+        collaboratorUserName: 'nameName'
+      }])
       mockVectorService.generateEmbeddings.mockResolvedValue([
         { embedding: [0.5, 0.6] },
       ])
 
-      const result = await service.updateNoteContent({
-        id: 1,
-        content: 'xyz',
-        boardId: 2,
-      })
+      const result = await service.updateNoteContent(
+        {
+          id: 1,
+          content: 'xyz',
+        },
+        2,
+        1
+      )
 
       expect(result).toEqual(updatedNote)
       expect(mockNoteRepo.updateNoteEmbedding).toHaveBeenCalledWith({
@@ -122,12 +148,26 @@ describe('NoteService', () => {
     test('updates note done status', async () => {
       const updated = { id: 2, isDone: true }
       mockNoteRepo.updateNoteIsDoneByID.mockResolvedValue(updated)
+      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockResolvedValue({
+        id: 10,
+        ownerId: 2,
+        ownerUserName: 'name'
 
-      const result = await service.isDoneNote({
-        id: 2,
-        isDone: true,
-        boardId: 1,
       })
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue([{
+        boardId: 1,
+        userId: 1,
+        collaboratorUserName: 'nameName'
+      }])
+
+      const result = await service.isDoneNote(
+        {
+          id: 2,
+          isDone: true,
+        },
+        1,
+        1
+      )
 
       expect(result).toEqual(updated)
       expect(mockNoteRepo.updateNoteIsDoneByID).toHaveBeenCalled()
@@ -138,8 +178,19 @@ describe('NoteService', () => {
     test('deletes note by id', async () => {
       const deleted = { id: 5, content: 'bye' }
       mockNoteRepo.deleteNoteById.mockResolvedValue(deleted)
+      mockNoteBoardRepo.getNoteBoardByBoardIdWithUser.mockResolvedValue({
+        id: 10,
+        ownerId: 2,
+        ownerUserName: 'name'
 
-      const result = await service.deleteNote({ noteId: 5, boardId: 10 })
+      })
+      mockBoardCollaboratorRepo.getCollaboratorByBoardId.mockResolvedValue([{
+        boardId: 1,
+        userId: 1,
+        collaboratorUserName: 'nameName'
+      }])
+
+      const result = await service.deleteNote({ noteId: 5, boardId: 10 }, 1)
 
       expect(result).toEqual(deleted)
     })

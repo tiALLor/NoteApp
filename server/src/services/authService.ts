@@ -22,26 +22,26 @@ export interface AuthTokens {
 export class AuthService {
   private repos
 
-  private refreshTokenKey
+  private refreshTokenKey = config.auth.refreshTokenKey
 
-  private tokenKey
+  private tokenKey = config.auth.tokenKey
 
-  private tokenExpiresIn
+  private tokenExpiresIn = config.auth.tokenExpiresIn
 
-  private refreshTokenExpiresIn
+  private refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn
 
-  private pepper
+  private pepper = config.auth.passwordPepper
 
-  private passwordCost
+  private passwordCost = config.auth.passwordCost
 
   constructor(db: Database) {
     this.repos = userRepository(db)
-    this.tokenKey = config.auth.tokenKey
-    this.refreshTokenKey = config.auth.refreshTokenKey
-    this.tokenExpiresIn = config.auth.tokenExpiresIn
-    this.refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn
-    this.pepper = config.auth.passwordPepper
-    this.passwordCost = config.auth.passwordCost
+    // this.tokenKey = config.auth.tokenKey
+    // this.refreshTokenKey = config.auth.refreshTokenKey
+    // this.tokenExpiresIn = config.auth.tokenExpiresIn
+    // this.refreshTokenExpiresIn = config.auth.refreshTokenExpiresIn
+    // this.pepper = config.auth.passwordPepper
+    // this.passwordCost = config.auth.passwordCost
   }
 
   // ===========================================

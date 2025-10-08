@@ -358,6 +358,8 @@ describe('NoteWebSocketServer Integration Tests', async () => {
       )
 
       const response = await waitForMessage(ws)
+      console.log(testUser1.id)
+      console.log(response)
       expect(response.type).toBe('new_note')
       if (
         response.type === 'new_note' &&

@@ -1,10 +1,6 @@
 import type { Database } from '@server/database'
 import logger from '@server/utils/logger'
 import {
-  noteInsertableSchema,
-  NoteIsDoneUpdateableSchema,
-  noteSemanticSearchSchema,
-  noteUpdateableSchema,
   type ChangeIsDoneNote,
   type NoteEmbUpdateable,
   type NoteInsertable,
@@ -13,7 +9,6 @@ import {
   type NoteUpdateable,
 } from '@server/entities/note'
 import {
-  boardCollaboratorInsertableSchema,
   type BoardCollaboratorInsertable,
   type BoardCollaboratorPublic,
   type BoardCollaboratorPublicWithUser,
@@ -27,8 +22,6 @@ import {
   type NoteRepository,
 } from '@server/repositories/noteRepository'
 import {
-  noteBoardInsertableSchema,
-  noteBoardUpdateableSchema,
   type NoteBoardInsertable,
   type NoteBoardPublic,
   type NoteBoardPublicWithUser,
@@ -73,24 +66,92 @@ export class NoteService {
   async getAllUserBoards(
     userId: number
   ): Promise<NoteBoardWithNoteAndCollaborators[]> {
-    const noteBoards =
+    const primaryNoteBoards =
       await this.noteBoardRepo.getNoteBoardsByUserIdWithUser(userId)
 
-    const enrichedBoards = await Promise.all(
-      noteBoards.map(async (noteBoard: NoteBoardPublicWithUser) => {
-        const notes = await this.noteRepo.getNotesByNoteBoardId(noteBoard.id)
-        const collaborators =
-          await this.boardCollaboratorRepo.getCollaboratorByBoardId(
-            noteBoard.id
-          )
+    // If no boards, return early
+    if (primaryNoteBoards.length === 0) {
+      return []
+    }
 
-        return {
-          ...noteBoard,
-          notes,
-          collaborators,
-        }
-      })
-    )
+    const noteBoardIds: number[] = primaryNoteBoards.map((nb) => nb.id)
+    const collaboratorsMap = new Map<
+      number,
+      BoardCollaboratorPublicWithUser[]
+    >()
+
+    const notesMap = new Map<number, NotePublic[]>()
+    await Promise.all([
+      (async () => {
+        const allNotesGrouped =
+          await this.noteRepo.getNotesByNoteBoardIds(noteBoardIds)
+        allNotesGrouped.forEach((item) => {
+          notesMap.set(item.boardId, item.notes)
+        })
+        return notesMap
+      })(),
+
+      (async () => {
+        const allCollaboratorsGrouped =
+          await this.boardCollaboratorRepo.getCollaboratorByBoardIds(
+            noteBoardIds
+          )
+        allCollaboratorsGrouped.forEach((item) => {
+          collaboratorsMap.set(item.boardId, item.collaborators)
+        })
+        return collaboratorsMap
+      })(),
+    ])
+
+    const enrichedBoards: NoteBoardWithNoteAndCollaborators[] =
+      primaryNoteBoards.map((noteBoard: NoteBoardPublicWithUser) => ({
+        ...noteBoard,
+        // Look up notes from the map; default to empty array if none found
+        notes: notesMap.get(noteBoard.id) || [],
+        // Look up collaborators from the map; default to empty array if none found
+        collaborators: collaboratorsMap.get(noteBoard.id) || [],
+      }))
+
+    // const enrichedBoards = await Promise.all(
+    //   noteBoards.map(async (noteBoard: NoteBoardPublicWithUser) => {
+    //     const notes: { boardId: number; notes: NotePublic[] }[] =
+    //       await this.noteRepo.getNotesByNoteBoardIds(noteBoardIds)
+
+    //     const collaborators =
+    //       await this.boardCollaboratorRepo.getCollaboratorByBoardIds(
+    //         noteBoardIds
+    //       )
+
+    //     return {
+    //       ...noteBoard,
+    //       notes: notes.filter((nb: { boardId: number; notes: NotePublic[] }) =>
+    //         nb.boardId === noteBoard.id ? nb.notes : []
+    //       ),
+    //       collaborators: collaborators.filter(
+    //         (col: {
+    //           boardId: number
+    //           collaborators: BoardCollaboratorPublicWithUser[]
+    //         }) => (col.boardId === noteBoard.id ? col.collaborators : [])
+    //       ),
+    //     }
+    //   })
+    // )
+
+    // const enrichedBoards = await Promise.all(
+    //   noteBoards.map(async (noteBoard: NoteBoardPublicWithUser) => {
+    //     const notes = await this.noteRepo.getNotesByNoteBoardId(noteBoard.id)
+    //     const collaborators =
+    //       await this.boardCollaboratorRepo.getCollaboratorByBoardId(
+    //         noteBoard.id
+    //       )
+
+    //     return {
+    //       ...noteBoard,
+    //       notes,
+    //       collaborators,
+    //     }
+    //   })
+    // )
 
     return enrichedBoards
   }
@@ -98,19 +159,23 @@ export class NoteService {
   // ===========================================
   // create new note
   // ===========================================
-  async createNote(data: NoteInsertable): Promise<NotePublic> {
-    let parsedData: NoteInsertable
+  async createNote(data: NoteInsertable, userId: number): Promise<NotePublic> {
+    // let parsedData: NoteInsertable
 
     // check if board exists
     try {
-      parsedData = noteInsertableSchema.parse(data)
-      await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(parsedData.boardId)
+      await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(data.boardId)
     } catch (error) {
       logger.error(`parse new note or board Id: ${data.boardId}: ${error}`)
       throw error
     }
 
-    const newNote = await this.noteRepo.createNote(parsedData)
+    // check permission
+    if (!(await this.hasPermission(data.boardId, userId))) {
+      throw new Error('User is not the owner or collaborator of the note board')
+    }
+
+    const newNote = await this.noteRepo.createNote(data)
 
     try {
       // generate and update note with embedding
@@ -127,18 +192,16 @@ export class NoteService {
   // update note content
   // ===========================================
   async updateNoteContent(
-    data: NoteUpdateable & { boardId: number }
+    data: NoteUpdateable,
+    boardId: number,
+    userId: number
   ): Promise<NotePublic> {
-    let parsedData: NoteUpdateable
-
-    try {
-      parsedData = noteUpdateableSchema.parse(data)
-    } catch (error) {
-      logger.error(`parse: ${data.id}: ${error}`)
-      throw error
+    // check permission
+    if (!(await this.hasPermission(boardId, userId))) {
+      throw new Error('User is not the owner or collaborator of the note board')
     }
 
-    const updatedNote = await this.noteRepo.updateNoteContent(parsedData)
+    const updatedNote = await this.noteRepo.updateNoteContent(data)
 
     try {
       // generate and update note with embedding
@@ -155,18 +218,16 @@ export class NoteService {
   // update note isDone
   // ===========================================
   async isDoneNote(
-    data: ChangeIsDoneNote & { boardId: number }
+    data: ChangeIsDoneNote,
+    boardId: number,
+    userId: number
   ): Promise<NotePublic> {
-    let parsedData: ChangeIsDoneNote
-
-    try {
-      parsedData = NoteIsDoneUpdateableSchema.parse(data)
-    } catch (error) {
-      logger.error(`parse: ${data.id}: ${error}`)
-      throw error
+    // check permission
+    if (!(await this.hasPermission(boardId, userId))) {
+      throw new Error('User is not the owner or collaborator of the note board')
     }
 
-    const updatedNote = await this.noteRepo.updateNoteIsDoneByID(parsedData)
+    const updatedNote = await this.noteRepo.updateNoteIsDoneByID(data)
 
     return updatedNote
   }
@@ -174,10 +235,18 @@ export class NoteService {
   // ===========================================
   // delete note
   // ===========================================
-  async deleteNote(data: {
-    noteId: number
-    boardId: number
-  }): Promise<NotePublic> {
+  async deleteNote(
+    data: {
+      noteId: number
+      boardId: number
+    },
+    userId: number
+  ): Promise<NotePublic> {
+    // check permission
+    if (!(await this.hasPermission(data.boardId, userId))) {
+      throw new Error('User is not the owner or collaborator of the note board')
+    }
+
     const deletedNote = await this.noteRepo.deleteNoteById(data.noteId)
 
     return deletedNote
@@ -189,16 +258,7 @@ export class NoteService {
   async createNoteBoard(
     data: NoteBoardInsertable
   ): Promise<NoteBoardWithNoteAndCollaborators> {
-    let parsedData: NoteBoardInsertable
-
-    try {
-      parsedData = noteBoardInsertableSchema.parse(data)
-    } catch (error) {
-      logger.error(`parse new note board: ${error}`)
-      throw error
-    }
-
-    const newNoteBoard = await this.noteBoardRepo.createNoteBoard(parsedData)
+    const newNoteBoard = await this.noteBoardRepo.createNoteBoard(data)
 
     const noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
       newNoteBoard.id
@@ -222,8 +282,6 @@ export class NoteService {
     userId: number,
     data: NoteBoardUpdateable
   ): Promise<NoteBoardPublic> {
-    let parsedData: NoteBoardUpdateable
-
     try {
       const noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
         data.id
@@ -231,14 +289,12 @@ export class NoteService {
       if (noteBoard.ownerId !== userId) {
         throw new Error('User is not the owner of the note board')
       }
-      parsedData = noteBoardUpdateableSchema.parse(data)
     } catch (error) {
       logger.error(`board: ${data.id}: ${error}`)
       throw error
     }
 
-    const updatedNoteBoard =
-      await this.noteBoardRepo.updateNoteBoardTitle(parsedData)
+    const updatedNoteBoard = await this.noteBoardRepo.updateNoteBoardTitle(data)
 
     return updatedNoteBoard
   }
@@ -276,8 +332,6 @@ export class NoteService {
     userId: number,
     data: BoardCollaboratorInsertable
   ): Promise<NoteBoardWithNoteAndCollaborators> {
-    let parsedData: BoardCollaboratorInsertable
-
     let noteBoard: NoteBoardPublicWithUser
     try {
       noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
@@ -286,7 +340,6 @@ export class NoteService {
       if (noteBoard.ownerId !== userId) {
         throw new Error('User is not the owner of the note board')
       }
-      parsedData = boardCollaboratorInsertableSchema.parse(data)
     } catch (error) {
       logger.error(`board: ${data.boardId}: ${error}`)
       throw error
@@ -294,8 +347,7 @@ export class NoteService {
 
     let addedCollaborator: BoardCollaboratorPublic
     try {
-      addedCollaborator =
-        await this.boardCollaboratorRepo.addCollaborator(parsedData)
+      addedCollaborator = await this.boardCollaboratorRepo.addCollaborator(data)
     } catch (error) {
       logger.error(`collaborator was not added: ${error}`)
       throw error
@@ -323,8 +375,6 @@ export class NoteService {
     userId: number,
     data: BoardCollaboratorInsertable
   ): Promise<NoteBoardWithNoteAndCollaborators> {
-    let parsedData: BoardCollaboratorInsertable
-
     let noteBoard: NoteBoardPublicWithUser
     try {
       noteBoard = await this.noteBoardRepo.getNoteBoardByBoardIdWithUser(
@@ -333,7 +383,6 @@ export class NoteService {
       if (noteBoard.ownerId !== userId) {
         throw new Error('User is not the owner of the note board')
       }
-      parsedData = boardCollaboratorInsertableSchema.parse(data)
     } catch (error) {
       logger.error(`board: ${data.boardId}: ${error}`)
       throw error
@@ -342,7 +391,7 @@ export class NoteService {
     let removedCollaborator: BoardCollaboratorPublic
     try {
       removedCollaborator =
-        await this.boardCollaboratorRepo.removeCollaborator(parsedData)
+        await this.boardCollaboratorRepo.removeCollaborator(data)
     } catch (error) {
       logger.error(`collaborator was not removed: ${error}`)
       throw error
@@ -391,14 +440,10 @@ export class NoteService {
     userId: number,
     data: NoteSemanticSearch
   ): Promise<(NotePublic & { similarity: number; title: string })[]> {
-    let parsedData: NoteSemanticSearch
     let generatedEmb
 
     try {
-      parsedData = noteSemanticSearchSchema.parse(data)
-      generatedEmb = await this.vectorService.generateEmbeddings([
-        parsedData.query,
-      ])
+      generatedEmb = await this.vectorService.generateEmbeddings([data.query])
     } catch (error) {
       logger.error(`Embedding was not generated: ${error}`)
       throw error
@@ -432,5 +477,19 @@ export class NoteService {
     } catch (error) {
       logger.error(`Failed to update embedding for note ${noteId}:`, error)
     }
+  }
+
+  // ===========================================
+  // PRIVATE hasPermission
+  // ===========================================
+  private async hasPermission(
+    boardId: number,
+    userId: number
+  ): Promise<boolean> {
+    const collaborators = await this.getCollaboratorsWithOwner(boardId)
+    const ids = collaborators.map((col) => col.userId)
+    console.log(ids)
+    console.log(ids.includes(userId))
+    return ids.includes(userId)
   }
 }

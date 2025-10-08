@@ -12,18 +12,27 @@ import {
   NoteService,
   type NoteBoardWithNoteAndCollaborators,
 } from '@server/services/noteService'
-import type {
-  NotePublic,
-  NoteInsertable,
-  NoteUpdateable,
-  ChangeIsDoneNote,
-  NoteSemanticSearch,
+import {
+  type NotePublic,
+  type NoteInsertable,
+  type NoteUpdateable,
+  type ChangeIsDoneNote,
+  type NoteSemanticSearch,
+  noteInsertableSchema,
+  noteUpdateableSchema,
+  NoteIsDoneUpdateableSchema,
+  noteSemanticSearchSchema,
 } from '@server/entities/note'
-import type { BoardCollaboratorInsertable } from '@server/entities/boardCollaborator'
-import type {
-  NoteBoardInsertable,
-  NoteBoardPublic,
-  NoteBoardUpdateable,
+import {
+  boardCollaboratorInsertableSchema,
+  type BoardCollaboratorInsertable,
+} from '@server/entities/boardCollaborator'
+import {
+  noteBoardInsertableSchema,
+  noteBoardUpdateableSchema,
+  type NoteBoardInsertable,
+  type NoteBoardPublic,
+  type NoteBoardUpdateable,
 } from '@server/entities/noteBoard'
 import type { UserPublic } from '@server/entities/user'
 import logger from '@server/utils/logger'
@@ -276,7 +285,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to download note boards' },
+          data: { message: `Failed to download note boards. ${error}` },
         })
       )
     }
@@ -340,7 +349,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to download note boards' },
+          data: { message: `Failed to download note boards. ${error}` },
         })
       )
     }
@@ -361,8 +370,19 @@ export class NoteWebSocketServer {
       return
     }
 
+    let parsedData: NoteSemanticSearch
     try {
-      const responseData = await this.noteService.semanticSearch(userId, data)
+      parsedData = noteSemanticSearchSchema.parse(data)
+    } catch (error) {
+      logger.error(`Embedding was not generated: ${error}`)
+      throw error
+    }
+
+    try {
+      const responseData = await this.noteService.semanticSearch(
+        userId,
+        parsedData
+      )
 
       const message: WsMessage = {
         type: 'semantic_search_result',
@@ -377,7 +397,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to download note boards' },
+          data: { message: `Failed to download note boards. ${error}` },
         })
       )
     }
@@ -395,8 +415,9 @@ export class NoteWebSocketServer {
     if (!connection || !userId) return
 
     try {
+      const parsedData: NoteInsertable = noteInsertableSchema.parse(data)
       const [responseData, recipientsConnIds] = await Promise.all([
-        this.noteService.createNote(data),
+        this.noteService.createNote(parsedData, userId),
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
@@ -411,7 +432,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to create new note' },
+          data: { message: `Failed to create new note. ${error}` },
         })
       )
     }
@@ -433,9 +454,31 @@ export class NoteWebSocketServer {
     try {
       let updatePromise: Promise<NotePublic>
       if (NoteWebSocketServer.isNoteUpdateableContent(data)) {
-        updatePromise = this.noteService.updateNoteContent(data)
+        let parsedData: NoteUpdateable
+        try {
+          parsedData = noteUpdateableSchema.parse(data)
+        } catch (error) {
+          logger.error(`parse: ${data.id}: ${error}`)
+          throw error
+        }
+        updatePromise = this.noteService.updateNoteContent(
+          parsedData,
+          data.boardId,
+          userId
+        )
       } else if (NoteWebSocketServer.isNoteUpdateableIsDone(data)) {
-        updatePromise = this.noteService.isDoneNote(data)
+        let parsedData: ChangeIsDoneNote
+        try {
+          parsedData = NoteIsDoneUpdateableSchema.parse(data)
+        } catch (error) {
+          logger.error(`parse: ${data.id}: ${error}`)
+          throw error
+        }
+        updatePromise = this.noteService.isDoneNote(
+          parsedData,
+          data.boardId,
+          userId
+        )
       } else {
         // Handle case where neither content nor isDone is provided
         logger.warn(
@@ -445,7 +488,7 @@ export class NoteWebSocketServer {
         connection.ws.send(
           JSON.stringify({
             type: 'error',
-            data: { message: 'Update failed: missing content or status' },
+            data: { message: `Update failed: missing content or status.` },
           })
         )
         return
@@ -467,7 +510,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to update the note' },
+          data: { message: `Failed to update the note. ${error}` },
         })
       )
     }
@@ -486,7 +529,7 @@ export class NoteWebSocketServer {
 
     try {
       const [responseData, recipientsConnIds] = await Promise.all([
-        this.noteService.deleteNote(data),
+        this.noteService.deleteNote(data, userId),
         this.getConnectionsByNoteBoardId(data.boardId),
       ])
 
@@ -501,7 +544,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to delete the note' },
+          data: { message: `Failed to delete the note. ${error}` },
         })
       )
     }
@@ -518,9 +561,18 @@ export class NoteWebSocketServer {
     const userId = connection?.userId
     if (!connection || !userId) return
 
+    // parse data
+    let parsedData: NoteBoardInsertable
+    try {
+      parsedData = noteBoardInsertableSchema.parse(data)
+    } catch (error) {
+      logger.error(`parse new note board: ${error}`)
+      throw error
+    }
+
     try {
       const responseData: NoteBoardWithNoteAndCollaborators =
-        await this.noteService.createNoteBoard(data)
+        await this.noteService.createNoteBoard(parsedData)
 
       const message: WsMessage = {
         type: 'new_note_board',
@@ -534,7 +586,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to create new note board' },
+          data: { message: `Failed to create new note board. ${error}` },
         })
       )
     }
@@ -551,9 +603,18 @@ export class NoteWebSocketServer {
     const userId = connection?.userId
     if (!connection || !userId) return
 
+    // parse data
+    let parsedData: NoteBoardUpdateable
+    try {
+      parsedData = noteBoardUpdateableSchema.parse(data)
+    } catch (error) {
+      logger.error(`board: ${data.id}: ${error}`)
+      throw error
+    }
+
     try {
       const [responseData, recipientsConnIds] = await Promise.all([
-        this.noteService.updateNoteBoardTitle(userId, data),
+        this.noteService.updateNoteBoardTitle(userId, parsedData),
         this.getConnectionsByNoteBoardId(data.id),
       ])
 
@@ -568,7 +629,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to update note board title' },
+          data: { message: `Failed to update note board title. ${error}` },
         })
       )
     }
@@ -602,7 +663,7 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to delete note board' },
+          data: { message: `Failed to delete note board. ${error}` },
         })
       )
     }
@@ -619,9 +680,18 @@ export class NoteWebSocketServer {
     const userId = connection?.userId
     if (!connection || !userId) return
 
+    // parse data
+    let parsedData: BoardCollaboratorInsertable
+    try {
+      parsedData = boardCollaboratorInsertableSchema.parse(data)
+    } catch (error) {
+      logger.error(`board: ${data.boardId}: ${error}`)
+      throw error
+    }
+
     try {
       const updatedNoteBoard: NoteBoardWithNoteAndCollaborators =
-        await this.noteService.addCollaborator(userId, data)
+        await this.noteService.addCollaborator(userId, parsedData)
 
       const recipientsConnIds = await this.getConnectionsByNoteBoardId(
         data.boardId
@@ -638,7 +708,9 @@ export class NoteWebSocketServer {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to create note board collaborator' },
+          data: {
+            message: `Failed to create note board collaborator. ${error}`,
+          },
         })
       )
     }
@@ -655,26 +727,53 @@ export class NoteWebSocketServer {
     const userId = connection?.userId
     if (!connection || !userId) return
 
+    let parsedData: BoardCollaboratorInsertable
+    try {
+      parsedData = boardCollaboratorInsertableSchema.parse(data)
+    } catch (error) {
+      logger.error(`board: ${data.boardId}: ${error}`)
+      throw error
+    }
+
     try {
       const updatedNoteBoard: NoteBoardWithNoteAndCollaborators =
-        await this.noteService.removeCollaborator(userId, data)
-
-      const recipientsConnIds = await this.getConnectionsByNoteBoardId(
-        data.boardId
-      )
+        await this.noteService.removeCollaborator(userId, parsedData)
 
       const message: WsMessage = {
         type: 'updated_collaborator',
         data: updatedNoteBoard,
       }
+      // get all collaborators before collaborator removals so he get notification
+      const recipientsConnIds = await this.getConnectionsByNoteBoardId(
+        data.boardId
+      )
 
       // Broadcast change to other collaborators
       this.broadCastMessage(recipientsConnIds, message)
+
+      const deleteData = {
+        id: updatedNoteBoard.id,
+        title: updatedNoteBoard.title,
+        ownerId: updatedNoteBoard.ownerId,
+      }
+
+      const deleteMessage: WsMessage = {
+        type: 'delete_note_board',
+        data: deleteData,
+      }
+
+      const removedCollaboratorConnIds = await this.getConnectionIdsByUserIds([
+        data.userId,
+      ])
+      // Broadcast change to removed collaborator
+      this.broadCastMessage(removedCollaboratorConnIds, deleteMessage)
     } catch (error) {
       connection.ws.send(
         JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to remove collaborator  from note board' },
+          data: {
+            message: `Failed to remove collaborator  from note board. ${error}`,
+          },
         })
       )
     }

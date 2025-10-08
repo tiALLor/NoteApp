@@ -96,6 +96,46 @@ export function noteRepository(db: Database) {
       })
     },
 
+    async getNotesByNoteBoardIds(
+      boardIds: number[]
+    ): Promise<{ boardId: number; notes: NotePublic[] }[]> {
+      const result = await db
+        .selectFrom('note')
+        .where('boardId', 'in', boardIds)
+        .select(noteKeyPublic)
+        .orderBy('isDone')
+        .execute()
+
+      const resultWithDateAsString = result.map((row) => {
+        let createdAt: string
+
+        if (row.createdAt instanceof Date) {
+          createdAt = row.createdAt.toISOString()
+        } else if (typeof row.createdAt === 'string') {
+          createdAt = row.createdAt
+        } else {
+          throw new Error('Unsupported createdAt format')
+        }
+        return { ...row, createdAt }
+      })
+
+      // Group the flat list of notes by boardId using a Map (more efficient than repeated filter)
+      const groupedNotesMap = new Map<number, NotePublic[]>()
+
+      resultWithDateAsString.forEach((note) => {
+        const notesArray = groupedNotesMap.get(note.boardId) || []
+        notesArray.push(note)
+        groupedNotesMap.set(note.boardId, notesArray)
+      })
+
+      // Return the final structured array, ensuring every requested boardId is present
+      return boardIds.map((boardId) => ({
+        boardId,
+        // Return the grouped notes, or an empty array if the board had no notes
+        notes: groupedNotesMap.get(boardId) || [],
+      }))
+    },
+
     async deleteNoteById(noteId: number): Promise<NotePublic> {
       const result = await db
         .deleteFrom('note')

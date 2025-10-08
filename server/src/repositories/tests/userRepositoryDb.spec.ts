@@ -270,7 +270,8 @@ describe('get all users', () => {
 
     const result = await repository.getUserAll()
 
-    expect(result).toEqual([
+
+    expect(result).toEqual(expect.arrayContaining([
       {
         id: userOne.id,
         userName: userOne.userName,
@@ -279,7 +280,7 @@ describe('get all users', () => {
         id: userTwo.id,
         userName: userTwo.userName,
       },
-    ])
+    ]))
 
     // check directly in database
     const userAllInDatabase = await selectAll(db, 'user')

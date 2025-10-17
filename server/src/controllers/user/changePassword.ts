@@ -9,7 +9,7 @@ export default authenticatedProcedure
     async ({
       input: { oldPassword, newPassword },
       ctx: { authUser, authService },
-    }) => {
+    }): Promise<UserPublic> => {
       if (oldPassword === newPassword) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -18,13 +18,6 @@ export default authenticatedProcedure
       }
 
       let changedUser: UserPublic
-
-      if (!authService) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Auth service not available',
-        })
-      }
 
       try {
         changedUser = await authService.changePassword(

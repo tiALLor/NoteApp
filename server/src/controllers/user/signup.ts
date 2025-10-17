@@ -11,34 +11,29 @@ export default publicProcedure
       userName: true,
     })
   )
-  .mutation(async ({ input: user, ctx: { authService } }) => {
-    if (!authService) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Auth service not available',
-      })
-    }
+  .mutation(
+    async ({ input: user, ctx: { authService } }): Promise<UserPublic> => {
+      let newUser: UserPublic
 
-    let newUser: UserPublic
+      try {
+        newUser = await authService.signup(
+          user.email,
+          user.userName,
+          user.password
+        )
+      } catch (error) {
+        assertError(error)
+        if (error instanceof TRPCError) {
+          throw error
+        }
 
-    try {
-      newUser = await authService.signup(
-        user.email,
-        user.userName,
-        user.password
-      )
-    } catch (error) {
-      assertError(error)
-      if (error instanceof TRPCError) {
-        throw error
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'User signup failed',
+          cause: error,
+        })
       }
 
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'User signup failed',
-        cause: error,
-      })
+      return newUser
     }
-
-    return newUser
-  })
+  )

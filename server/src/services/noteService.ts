@@ -488,8 +488,6 @@ export class NoteService {
   ): Promise<boolean> {
     const collaborators = await this.getCollaboratorsWithOwner(boardId)
     const ids = collaborators.map((col) => col.userId)
-    console.log(ids)
-    console.log(ids.includes(userId))
     return ids.includes(userId)
   }
 }

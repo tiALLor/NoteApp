@@ -94,3 +94,14 @@ export const userPublicSchema = userSchema.pick({
 export const userKeyPublic = ['id', 'userName'] as const
 
 export type UserPublic = Pick<Selectable<User>, (typeof userKeyPublic)[number]>
+
+// ===========================================
+// loginSchema
+// ===========================================
+
+export const loginSchema = z.object({
+  email: z.string().toLowerCase().trim().email(),
+  password: z.string().trim().min(1),
+})
+
+export type LoginData = z.infer<typeof loginSchema>

@@ -59,7 +59,6 @@ const schema = z
         .transform((val) => val as Secret), // Cast to Secret for JWT typing,
       tokenExpiresIn: jwtExpirySchema.default('1h'),
       refreshTokenExpiresIn: jwtExpirySchema.default('7d'),
-      // refreshTokenExpiresIn: jwtExpirySchema.default('7d'),
       passwordCost: z.coerce.number().default(isDevTest ? 6 : 12),
       passwordPepper: z.string().default('abc123'),
     }),

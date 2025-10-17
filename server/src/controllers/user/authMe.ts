@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 export default authenticatedProcedure
   .input(z.object({}))
-  .mutation(async ({ ctx }) => {
+  .mutation(async ({ ctx }): Promise<UserPublic> => {
     // we depend on having an Express request object
     if (!ctx.req) {
       const message =
@@ -33,12 +33,6 @@ export default authenticatedProcedure
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'Unauthenticated. Please log in.',
-      })
-    }
-    if (!ctx.authService) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Auth service not available',
       })
     }
 

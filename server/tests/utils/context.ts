@@ -1,5 +1,6 @@
 import { fakeAuthUser } from '@server/entities/tests/fakes'
 import { userPublicSchema, type UserPublic } from '@server/entities/user'
+import { AuthService } from '@server/services/authService'
 import type { Context, ContextMinimal } from '@server/trpc'
 
 export const requestContext = (
@@ -31,5 +32,6 @@ export const authRepoContext = (
   ...requestContext({
     db: {} as any,
     repos,
+    authService: {} as AuthService
   }),
 })

@@ -39,12 +39,7 @@ export const authenticatedProcedure = publicProcedure.use(
         message: 'Unauthenticated. Please log in.',
       })
     }
-    if (!ctx.authService) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Auth service not available',
-      })
-    }
+
     const data = await ctx.authService.verifyAccessToken(token)
 
     const authUser = data.user

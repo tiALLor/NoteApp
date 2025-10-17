@@ -14,7 +14,6 @@ const INVALID_TOKEN = 'invalid-token'
 
 // we do not need a database for this test
 const db = {} as any
-const authenticated = createCaller(authContext({ db }))
 
 const fakeAuthService = {
   verifyAccessToken: (token: string) => {
@@ -22,6 +21,10 @@ const fakeAuthService = {
     return { user: { id: 2, name: 'some', roleName: 'user' } }
   },
 } as unknown as AuthService
+
+const authenticated = createCaller(
+  authContext({ db, authService: fakeAuthService })
+)
 
 it('should pass if user is already authenticated', async () => {
   const response = await authenticated.testCall()
@@ -44,7 +47,7 @@ it('should pass if user provides a valid token', async () => {
 })
 
 it('should throw an error if user is not logged in', async () => {
-  const unauthenticated = createCaller(requestContext({ db }))
+  const unauthenticated = createCaller(requestContext({ db, authService: fakeAuthService }))
 
   await expect(unauthenticated.testCall()).rejects.toThrow(
     // any authentication-like error
@@ -57,6 +60,7 @@ it('should throw an error if it is run without access to headers', async () => {
     requestContext({
       db,
       req: undefined as any,
+      authService: fakeAuthService
     })
   )
 

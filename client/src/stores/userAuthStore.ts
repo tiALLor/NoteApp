@@ -17,7 +17,7 @@ type LoginResponse = {
 
 export const useUserAuthStore = defineStore('auth', () => {
   const authUser = ref<UserPublic | null>(null)
-  // access token stored in memory
+  // access token stored in local storage
   const accessToken = ref<string | null>(localStorage.getItem('accessToken'))
   const isLoading = ref(false)
   const error = ref<string | null>(null)
